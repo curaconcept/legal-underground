@@ -25,6 +25,7 @@
   renderFooter();
 
   const root = $("#dashRoot");
+  let employerAppsByJob = {};
   const statusChip = (s) => ({
     Submitted: "chip", Reviewed: "chip-gold", Interview: "chip-gold",
     Accepted: "chip-green", Declined: "chip-red",
@@ -125,14 +126,19 @@
 
   // ================= EMPLOYER =================
   async function renderEmployer(user) {
-    const [profile, myJobs] = await Promise.all([
+    const [profile, myJobs, allApps] = await Promise.all([
       store.getProfile(user.uid).then((p) => p || {}),
       store.listJobsByOwner(user.uid),
+      store.listAppsByOwner(user.uid),
     ]);
-    const appCounts = {};
-    await Promise.all(myJobs.map(async (j) => {
-      appCounts[j.id] = (await store.listAppsByJob(j.id)).length;
-    }));
+    employerAppsByJob = {};
+    allApps.forEach((a) => {
+      (employerAppsByJob[a.jobId] ||= []).push(a);
+    });
+    Object.values(employerAppsByJob).forEach((list) =>
+      list.sort((a, b) => b.createdAt - a.createdAt));
+    const appCounts = Object.fromEntries(myJobs.map((j) =>
+      [j.id, (employerAppsByJob[j.id] || []).length]));
 
     root.innerHTML = `
       <div class="dash-head">
@@ -222,8 +228,7 @@
     const box = cardEl.querySelector("[data-appbox]");
     if (box.dataset.open === "1") { box.innerHTML = ""; box.dataset.open = ""; return; }
     box.dataset.open = "1";
-    box.innerHTML = `<p style="color:var(--faint);font-size:13px">Loading applicants…</p>`;
-    const apps = await store.listAppsByJob(jobId);
+    const apps = employerAppsByJob[jobId] || [];
     if (!apps.length) {
       box.innerHTML = `<p style="color:var(--faint);font-size:13.5px;border-top:1px solid var(--border);padding-top:12px">No applications yet.</p>`;
       return;

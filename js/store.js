@@ -211,8 +211,14 @@ const demoBackend = {
     if (i >= 0) { jobs[i] = { ...jobs[i], ...data }; lsSet(LS.jobs, jobs); }
   },
   async deleteJob(id) {
-    lsSet(LS.jobs, lsGet(LS.jobs, []).filter((j) => j.id !== id));
+    const apps = lsGet(LS.apps, []).filter((a) => a.jobId === id);
     lsSet(LS.apps, lsGet(LS.apps, []).filter((a) => a.jobId !== id));
+    lsSet(LS.jobs, lsGet(LS.jobs, []).filter((j) => j.id !== id));
+  },
+
+  async listAppsByOwner(ownerId) {
+    return lsGet(LS.apps, []).filter((a) => a.jobOwnerId === ownerId)
+      .sort((a, b) => b.createdAt - a.createdAt);
   },
 
   async apply(data) {
@@ -331,7 +337,24 @@ const firebaseBackend = {
   },
   async deleteJob(id) {
     const { fsMod, db } = fb;
-    await fsMod.deleteDoc(fsMod.doc(db, "jobs", id));
+    const user = getUser();
+    const appsQ = fsMod.query(
+      fsMod.collection(db, "applications"),
+      fsMod.where("jobOwnerId", "==", user.uid),
+      fsMod.where("jobId", "==", id),
+    );
+    const snap = await fsMod.getDocs(appsQ);
+    const batch = fsMod.writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    batch.delete(fsMod.doc(db, "jobs", id));
+    await batch.commit();
+  },
+
+  async listAppsByOwner(ownerId) {
+    const { fsMod, db } = fb;
+    const q = fsMod.query(fsMod.collection(db, "applications"),
+      fsMod.where("jobOwnerId", "==", ownerId));
+    return docsToList(await fsMod.getDocs(q)).sort((a, b) => b.createdAt - a.createdAt);
   },
 
   async apply(data) {
@@ -352,7 +375,14 @@ const firebaseBackend = {
   },
   async listAppsByJob(jobId) {
     const { fsMod, db } = fb;
-    const q = fsMod.query(fsMod.collection(db, "applications"), fsMod.where("jobId", "==", jobId));
+    const user = getUser();
+    const q = user?.uid
+      ? fsMod.query(
+          fsMod.collection(db, "applications"),
+          fsMod.where("jobOwnerId", "==", user.uid),
+          fsMod.where("jobId", "==", jobId),
+        )
+      : fsMod.query(fsMod.collection(db, "applications"), fsMod.where("jobId", "==", jobId));
     return docsToList(await fsMod.getDocs(q)).sort((a, b) => b.createdAt - a.createdAt);
   },
   async setAppStatus(id, status) {
