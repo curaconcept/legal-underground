@@ -16,9 +16,71 @@
 <!-- ============ HERO ============ -->
 <header class="hero">
   <div class="container hero-grid">
-    <div>
+    <div class="hero-copy">
       <div class="hero-badge"><span class="dot"></span> UCLA STUDENT ORGANIZATION · FREE TO JOIN</div>
       <h1>Your gateway to the <span class="grad-text">legal world</span> starts underground.</h1>
+
+      <div class="hero-art">
+        <!-- The Legal Underground seal -->
+        <svg viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Legal Underground at UCLA seal">
+          <!-- outer ring, broken at the horizontal -->
+          <path d="M 23.6 218.3 A 240 240 0 0 1 496.4 218.3" stroke="#4553b8" stroke-width="3"/>
+          <path d="M 23.6 301.7 A 240 240 0 0 0 496.4 301.7" stroke="#4553b8" stroke-width="3"/>
+          <!-- inner circle -->
+          <circle cx="260" cy="260" r="170" stroke="#4553b8" stroke-width="2"/>
+          <!-- horizontal rules through the ring gap -->
+          <path d="M 4 260 H 86" stroke="#4553b8" stroke-width="3"/>
+          <path d="M 434 260 H 516" stroke="#4553b8" stroke-width="3"/>
+
+          <!-- arc lettering -->
+          <defs>
+            <path id="arcTop" d="M 60 260 A 200 200 0 0 1 460 260"/>
+            <path id="arcBottom" d="M 55 260 A 205 205 0 0 0 465 260"/>
+          </defs>
+          <text fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="34" font-weight="600" letter-spacing="8">
+            <textPath href="#arcTop" startOffset="50%" text-anchor="middle">LEGAL UNDERGROUND</textPath>
+          </text>
+          <text fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="30" font-weight="600" letter-spacing="10">
+            <textPath href="#arcBottom" startOffset="50%" text-anchor="middle">AT UCLA</textPath>
+          </text>
+
+          <!-- L · U monogram -->
+          <text x="212" y="304" fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="74" font-weight="500" text-anchor="middle">L</text>
+          <text x="306" y="304" fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="74" font-weight="500" text-anchor="middle">U</text>
+
+          <!-- scales of justice -->
+          <g class="balance">
+            <path d="M 152 208 Q 260 176 368 208" stroke="#d9a916" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <circle cx="152" cy="208" r="5" fill="#d9a916"/>
+            <circle cx="368" cy="208" r="5" fill="#d9a916"/>
+            <!-- hangers -->
+            <path d="M 152 210 L 126 268 M 152 210 L 178 268" stroke="#d9a916" stroke-width="2.2"/>
+            <path d="M 368 210 L 342 268 M 368 210 L 394 268" stroke="#d9a916" stroke-width="2.2"/>
+            <!-- pans -->
+            <path d="M 118 268 h 68 a 34 20 0 0 1 -68 0 Z" fill="#e4b92e" stroke="#d9a916" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M 334 268 h 68 a 34 20 0 0 1 -68 0 Z" fill="#e4b92e" stroke="#d9a916" stroke-width="2.5" stroke-linejoin="round"/>
+          </g>
+          <!-- column, finial, base -->
+          <circle cx="260" cy="150" r="7" fill="#d9a916"/>
+          <path d="M 260 158 V 342" stroke="#d9a916" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 244 342 h 32 l 18 24 h -68 Z" fill="#d9a916"/>
+          <rect x="214" y="368" width="92" height="9" rx="2" fill="#d9a916"/>
+        </svg>
+
+        <div class="float-chip" style="top:4%;left:0%">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M5 7h14" stroke="#4553b8" stroke-width="2" stroke-linecap="round"/><path d="M5 7l-2.4 5.5a3 3 0 006 0L6.4 7M19 7l-2.4 5.5a3 3 0 006 0L20.4 7" stroke="#9a7714" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <span><b>Immigration</b> · 3 open roles</span>
+        </div>
+        <div class="float-chip" style="top:34%;right:-4%;animation-delay:-2.5s">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#4553b8" stroke-width="2"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="#9a7714" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>New application received</span>
+        </div>
+        <div class="float-chip" style="bottom:8%;left:-2%;animation-delay:-4.5s">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M4 21V9h16v12M12 3 4 9h16l-8-6Z" stroke="#4553b8" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 21v-8m4 8v-8m4 8v-8" stroke="#9a7714" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Civil Rights</b> · Downtown LA</span>
+        </div>
+      </div>
+
       <p class="lede">Legal Underground connects UCLA students with pro bono clinics, public-interest
         organizations, and law firms that need sharp, motivated students. Real casework.
         Real mentorship. Zero cost.</p>
@@ -32,67 +94,6 @@
         <div class="hstat"><div class="num" data-count="18">0<em>+</em></div><div class="lbl">Practice areas</div></div>
         <div class="hstat"><div class="num" data-count="100">0<em>%</em></div><div class="lbl">Free, always</div></div>
         <div class="hstat"><div class="num" data-count="1">0<em> click</em></div><div class="lbl">To apply</div></div>
-      </div>
-    </div>
-
-    <div class="hero-art">
-      <!-- The Legal Underground seal -->
-      <svg viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Legal Underground at UCLA seal">
-        <!-- outer ring, broken at the horizontal -->
-        <path d="M 23.6 218.3 A 240 240 0 0 1 496.4 218.3" stroke="#4553b8" stroke-width="3"/>
-        <path d="M 23.6 301.7 A 240 240 0 0 0 496.4 301.7" stroke="#4553b8" stroke-width="3"/>
-        <!-- inner circle -->
-        <circle cx="260" cy="260" r="170" stroke="#4553b8" stroke-width="2"/>
-        <!-- horizontal rules through the ring gap -->
-        <path d="M 4 260 H 86" stroke="#4553b8" stroke-width="3"/>
-        <path d="M 434 260 H 516" stroke="#4553b8" stroke-width="3"/>
-
-        <!-- arc lettering -->
-        <defs>
-          <path id="arcTop" d="M 60 260 A 200 200 0 0 1 460 260"/>
-          <path id="arcBottom" d="M 55 260 A 205 205 0 0 0 465 260"/>
-        </defs>
-        <text fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="34" font-weight="600" letter-spacing="8">
-          <textPath href="#arcTop" startOffset="50%" text-anchor="middle">LEGAL UNDERGROUND</textPath>
-        </text>
-        <text fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="30" font-weight="600" letter-spacing="10">
-          <textPath href="#arcBottom" startOffset="50%" text-anchor="middle">AT UCLA</textPath>
-        </text>
-
-        <!-- L · U monogram -->
-        <text x="212" y="304" fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="74" font-weight="500" text-anchor="middle">L</text>
-        <text x="306" y="304" fill="#4553b8" font-family="'Playfair Display', Georgia, serif" font-size="74" font-weight="500" text-anchor="middle">U</text>
-
-        <!-- scales of justice -->
-        <g class="balance">
-          <path d="M 152 208 Q 260 176 368 208" stroke="#d9a916" stroke-width="7" stroke-linecap="round" fill="none"/>
-          <circle cx="152" cy="208" r="5" fill="#d9a916"/>
-          <circle cx="368" cy="208" r="5" fill="#d9a916"/>
-          <!-- hangers -->
-          <path d="M 152 210 L 126 268 M 152 210 L 178 268" stroke="#d9a916" stroke-width="2.2"/>
-          <path d="M 368 210 L 342 268 M 368 210 L 394 268" stroke="#d9a916" stroke-width="2.2"/>
-          <!-- pans -->
-          <path d="M 118 268 h 68 a 34 20 0 0 1 -68 0 Z" fill="#e4b92e" stroke="#d9a916" stroke-width="2.5" stroke-linejoin="round"/>
-          <path d="M 334 268 h 68 a 34 20 0 0 1 -68 0 Z" fill="#e4b92e" stroke="#d9a916" stroke-width="2.5" stroke-linejoin="round"/>
-        </g>
-        <!-- column, finial, base -->
-        <circle cx="260" cy="150" r="7" fill="#d9a916"/>
-        <path d="M 260 158 V 342" stroke="#d9a916" stroke-width="9" stroke-linecap="round"/>
-        <path d="M 244 342 h 32 l 18 24 h -68 Z" fill="#d9a916"/>
-        <rect x="214" y="368" width="92" height="9" rx="2" fill="#d9a916"/>
-      </svg>
-
-      <div class="float-chip" style="top:4%;left:0%">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M5 7h14" stroke="#4553b8" stroke-width="2" stroke-linecap="round"/><path d="M5 7l-2.4 5.5a3 3 0 006 0L6.4 7M19 7l-2.4 5.5a3 3 0 006 0L20.4 7" stroke="#9a7714" stroke-width="1.7" stroke-linejoin="round"/></svg>
-        <span><b>Immigration</b> · 3 open roles</span>
-      </div>
-      <div class="float-chip" style="top:34%;right:-4%;animation-delay:-2.5s">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#4553b8" stroke-width="2"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="#9a7714" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>New application received</span>
-      </div>
-      <div class="float-chip" style="bottom:8%;left:-2%;animation-delay:-4.5s">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M4 21V9h16v12M12 3 4 9h16l-8-6Z" stroke="#4553b8" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 21v-8m4 8v-8m4 8v-8" stroke="#9a7714" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <span><b>Civil Rights</b> · Downtown LA</span>
       </div>
     </div>
   </div>
