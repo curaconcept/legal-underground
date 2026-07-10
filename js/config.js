@@ -1,30 +1,17 @@
 // ============================================================
 // LEGAL UNDERGROUND — Firebase configuration
 // ============================================================
-// The site works out of the box in DEMO MODE (data saved in your
-// browser via localStorage) so you can explore everything today.
-//
-// To go live with real shared data:
-//   1. Create a project at https://console.firebase.google.com
-//   2. Add a Web App, then copy its config object over the
-//      placeholder below.
-//   3. In the console enable:  Authentication → Email/Password
-//      and  Firestore Database  (production mode).
-//   4. Paste the rules from firestore.rules into
-//      Firestore → Rules, then publish.
-// Full walkthrough in README.md.
-// ============================================================
 
 export const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxxxx",
+  apiKey: "AIzaSyC6uvgDvHCZNNntexeswQYl-TCJON6TJK4",
+  authDomain: "legal-underground.firebaseapp.com",
+  projectId: "legal-underground",
+  storageBucket: "legal-underground.firebasestorage.app",
+  messagingSenderId: "897212446743",
+  appId: "1:897212446743:web:75c3744c5e32d166080452",
+  measurementId: "G-PP4GMEC0V1",
 };
 
-// Firestore turns on automatically once a real apiKey is pasted above.
 export const FIREBASE_ENABLED =
   !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
 

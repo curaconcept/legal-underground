@@ -244,14 +244,18 @@ const demoBackend = {
 let fb = null;
 
 async function firebaseInit() {
-  const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+  const [{ initializeApp }, authMod, fsMod, analyticsMod] = await Promise.all([
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js"),
   ]);
   const app = initializeApp(firebaseConfig);
   const auth = authMod.getAuth(app);
   const db = fsMod.getFirestore(app);
+  if (firebaseConfig.measurementId) {
+    try { analyticsMod.getAnalytics(app); } catch { /* analytics optional */ }
+  }
   fb = { auth, db, authMod, fsMod };
 
   authMod.onAuthStateChanged(auth, async (u) => {
