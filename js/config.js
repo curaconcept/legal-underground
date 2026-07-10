@@ -1,16 +1,13 @@
 // ============================================================
-// LEGAL UNDERGROUND — Firebase configuration
+// LEGAL UNDERGROUND — App configuration
 // ============================================================
+// Firebase credentials live in firebase-config.js (gitignored).
+// Copy js/firebase-config.example.js → js/firebase-config.js for local dev.
+// Production injects firebase-config.js via GitHub Actions secret.
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyC6uvgDvHCZNNntexeswQYl-TCJON6TJK4",
-  authDomain: "legal-underground.firebaseapp.com",
-  projectId: "legal-underground",
-  storageBucket: "legal-underground.firebasestorage.app",
-  messagingSenderId: "897212446743",
-  appId: "1:897212446743:web:75c3744c5e32d166080452",
-  measurementId: "G-PP4GMEC0V1",
-};
+import { firebaseConfig } from "./firebase-config.js";
+
+export { firebaseConfig };
 
 export const FIREBASE_ENABLED =
   !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
