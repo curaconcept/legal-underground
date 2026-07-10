@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Legal Underground</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23faf4de' stroke='%234553b8' stroke-width='3'/%3E%3Cpath d='M32 16v26' stroke='%23d9a916' stroke-width='3.5' stroke-linecap='round'/%3E%3Cpath d='M18 22h28' stroke='%23d9a916' stroke-width='3.5' stroke-linecap='round'/%3E%3Cpath d='M18 22l-4.5 10a5.4 5.4 0 0010.8 0L20 22' fill='%23f0d576' stroke='%23d9a916' stroke-width='2.4'/%3E%3Cpath d='M46 22l-4.5 10a5.4 5.4 0 0010.8 0L48 22' fill='%23f0d576' stroke='%23d9a916' stroke-width='2.4'/%3E%3Cpath d='M24 46h16' stroke='%23d9a916' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<main class="page">
+  <div class="container" id="dashRoot"></div>
+</main>
+
+<script type="module">
+  import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, $, $$ } from "./js/ui.js";
+  import { store, onAuth, getUser } from "./js/store.js";
+  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES } from "./js/config.js";
+
+  await bootPage("dash");
+  renderFooter();
+
+  const root = $("#dashRoot");
+  const statusChip = (s) => ({
+    Submitted: "chip", Reviewed: "chip-gold", Interview: "chip-gold",
+    Accepted: "chip-green", Declined: "chip-red",
+  }[s] || "chip-muted");
+
+  onAuth((user) => { user ? renderDash(user) : renderLocked(); });
+
+  // ================= LOCKED =================
+  function renderLocked() {
+    root.innerHTML = `
+      <div class="card locked">
+        <div class="ico"><svg width="54" height="54" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="#4553b8" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#4553b8" stroke-width="1.8"/><circle cx="12" cy="15" r="1.6" fill="#9a7714"/></svg></div>
+        <h2>Your dashboard lives behind the door</h2>
+        <p>Sign in to manage your profile, applications, and postings.<br>New here? Joining takes thirty seconds and costs nothing.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary btn-lg" id="lockJoin">Create free account</button>
+          <button class="btn btn-ghost btn-lg" id="lockIn">Sign in</button>
+        </div>
+      </div>`;
+    $("#lockJoin").addEventListener("click", () => openAuthModal("signup"));
+    $("#lockIn").addEventListener("click", () => openAuthModal("signin"));
+  }
+
+  // ================= STUDENT =================
+  async function renderStudent(user) {
+    const [profile, apps] = await Promise.all([
+      store.getProfile(user.uid).then((p) => p || {}),
+      store.listAppsByApplicant(user.uid),
+    ]);
+
+    root.innerHTML = `
+      <div class="dash-head">
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Student dashboard</div>
+          <h1>Welcome back, <span class="grad-text">${esc((user.name || "Bruin").split(" ")[0])}</span></h1>
+          <p class="sub">Keep your profile sharp — it's attached to every application you send.</p>
+        </div>
+        <a class="btn btn-primary" href="jobs.html">Browse opportunities</a>
+      </div>
+      <div class="dash-grid">
+        <div class="sticky-col">
+          <div class="card">
+            <h3 style="margin-bottom:18px">My profile</h3>
+            <form id="profileForm">
+              <div class="field"><label>Full name</label>
+                <input class="input" name="name" value="${esc(profile.name || user.name || "")}"></div>
+              <div class="field-row">
+                <div class="field"><label>Year</label>
+                  <select class="input" name="year">
+                    ${["Freshman","Sophomore","Junior","Senior","Recent grad"].map((y) =>
+                      `<option ${profile.year === y ? "selected" : ""}>${y}</option>`).join("")}
+                  </select></div>
+                <div class="field"><label>Major</label>
+                  <input class="input" name="major" placeholder="Political Science" value="${esc(profile.major || "")}"></div>
+              </div>
+              <div class="field"><label>Résumé link</label>
+                <input class="input" name="resume" type="url" placeholder="https://drive.google.com/…" value="${esc(profile.resume || "")}"></div>
+              <div class="field"><label>Interests</label>
+                <input class="input" name="interests" placeholder="Immigration, Civil Rights…" value="${esc(profile.interests || "")}"></div>
+              <div class="field"><label>Short bio</label>
+                <textarea class="input" name="bio" placeholder="Two or three sentences about you…">${esc(profile.bio || "")}</textarea></div>
+              <button class="btn btn-primary btn-block" type="submit">Save profile</button>
+            </form>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h3 style="margin-bottom:6px">My applications</h3>
+            <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">${apps.length ? `${apps.length} application${apps.length === 1 ? "" : "s"} so far.` : "Nothing yet — your first application is one click away."}</p>
+            <div class="stack" id="appsList">
+              ${apps.length ? apps.map((a) => `
+                <div class="list-row">
+                  <div>
+                    <div class="t">${esc(a.jobTitle)}</div>
+                    <div class="s">${esc(a.org)} · applied ${timeAgo(a.createdAt)}</div>
+                  </div>
+                  <span class="chip ${statusChip(a.status)}">${esc(a.status)}</span>
+                </div>`).join("")
+              : `<div class="empty-state" style="padding:40px 10px">
+                   <div class="empty-ico"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M3 13 5 5h14l2 8v6H3v-6Z" stroke="#4553b8" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 13h5a4 4 0 0 0 8 0h5" stroke="#9a7714" stroke-width="1.7"/></svg></div>
+                   <p>No applications yet. <a href="jobs.html">Find your first role →</a></p>
+                 </div>`}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    $("#profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await store.saveProfile(user.uid, {
+        name: f.get("name").trim(), year: f.get("year"), major: f.get("major").trim(),
+        resume: f.get("resume").trim(), interests: f.get("interests").trim(), bio: f.get("bio").trim(),
+      });
+      toast("Profile saved ✓");
+    });
+  }
+
+  // ================= EMPLOYER =================
+  async function renderEmployer(user) {
+    const [profile, myJobs] = await Promise.all([
+      store.getProfile(user.uid).then((p) => p || {}),
+      store.listJobsByOwner(user.uid),
+    ]);
+    const appCounts = {};
+    await Promise.all(myJobs.map(async (j) => {
+      appCounts[j.id] = (await store.listAppsByJob(j.id)).length;
+    }));
+
+    root.innerHTML = `
+      <div class="dash-head">
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Organization dashboard</div>
+          <h1>${esc(profile.orgName || user.name || "Your organization")}</h1>
+          <p class="sub">Post roles, review applicants, and move candidates through your pipeline.</p>
+        </div>
+        <button class="btn btn-gold" id="newJobBtn">+ Post an opportunity</button>
+      </div>
+      <div class="dash-grid">
+        <div class="sticky-col">
+          <div class="card">
+            <h3 style="margin-bottom:18px">Organization profile</h3>
+            <form id="orgForm">
+              <div class="field"><label>Organization name</label>
+                <input class="input" name="orgName" required placeholder="Westside Legal Clinic" value="${esc(profile.orgName || "")}"></div>
+              <div class="field"><label>Website</label>
+                <input class="input" name="website" type="url" placeholder="https://…" value="${esc(profile.website || "")}"></div>
+              <div class="field"><label>Contact email</label>
+                <input class="input" name="contact" type="email" placeholder="hiring@org.org" value="${esc(profile.contact || user.email)}"></div>
+              <div class="field"><label>About</label>
+                <textarea class="input" name="about" placeholder="What your organization does…">${esc(profile.about || "")}</textarea></div>
+              <button class="btn btn-primary btn-block" type="submit">Save profile</button>
+            </form>
+          </div>
+        </div>
+        <div class="stack" id="jobsCol">
+          ${myJobs.length ? myJobs.map((j) => `
+            <div class="card" data-job="${esc(j.id)}">
+              <div class="job-card-top">
+                <div>
+                  <h3 style="font-size:17px">${esc(j.title)}</h3>
+                  <div class="s" style="color:var(--faint);font-size:12.5px;margin-top:3px">
+                    Posted ${timeAgo(j.postedAt)} · deadline ${fmtDate(j.deadline)} ·
+                    <b style="color:var(--blue)">${appCounts[j.id]} applicant${appCounts[j.id] === 1 ? "" : "s"}</b>
+                  </div>
+                </div>
+                <span class="chip ${j.status === "open" ? "chip-green" : "chip-muted"}">${j.status === "open" ? "Open" : "Closed"}</span>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" data-act="apps">View applicants</button>
+                <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "open" ? "Close listing" : "Reopen"}</button>
+                <button class="btn btn-danger btn-sm" data-act="del">Delete</button>
+              </div>
+              <div class="stack" data-appbox style="margin-top:14px"></div>
+            </div>`).join("")
+          : `<div class="card empty-state">
+               <div class="empty-ico"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M14 4 6 8H3v5h3l8 4V4Z" stroke="#4553b8" stroke-width="1.7" stroke-linejoin="round"/><path d="M17.5 9a4 4 0 0 1 0 5M7 13v6" stroke="#9a7714" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+               <h3>No postings yet</h3>
+               <p>Your first opportunity takes about three minutes to post.</p>
+             </div>`}
+        </div>
+      </div>`;
+
+    $("#orgForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await store.saveProfile(user.uid, {
+        orgName: f.get("orgName").trim(), website: f.get("website").trim(),
+        contact: f.get("contact").trim(), about: f.get("about").trim(),
+      });
+      toast("Organization profile saved ✓");
+    });
+
+    $("#newJobBtn").addEventListener("click", () => openJobForm(user, profile));
+
+    $$("#jobsCol [data-job]").forEach((cardEl) => {
+      const jobId = cardEl.dataset.job;
+      const job = myJobs.find((j) => j.id === jobId);
+      cardEl.querySelector("[data-act=apps]").addEventListener("click", () => toggleApps(cardEl, jobId));
+      cardEl.querySelector("[data-act=toggle]").addEventListener("click", async () => {
+        await store.updateJob(jobId, { status: job.status === "open" ? "closed" : "open" });
+        toast(job.status === "open" ? "Listing closed." : "Listing reopened.");
+        renderEmployer(user);
+      });
+      cardEl.querySelector("[data-act=del]").addEventListener("click", async () => {
+        if (!confirm(`Delete "${job.title}" and its applications? This can't be undone.`)) return;
+        await store.deleteJob(jobId);
+        toast("Listing deleted.");
+        renderEmployer(user);
+      });
+    });
+  }
+
+  async function toggleApps(cardEl, jobId) {
+    const box = cardEl.querySelector("[data-appbox]");
+    if (box.dataset.open === "1") { box.innerHTML = ""; box.dataset.open = ""; return; }
+    box.dataset.open = "1";
+    box.innerHTML = `<p style="color:var(--faint);font-size:13px">Loading applicants…</p>`;
+    const apps = await store.listAppsByJob(jobId);
+    if (!apps.length) {
+      box.innerHTML = `<p style="color:var(--faint);font-size:13.5px;border-top:1px solid var(--border);padding-top:12px">No applications yet.</p>`;
+      return;
+    }
+    box.innerHTML = apps.map((a) => `
+      <div class="applicant-row" data-app="${esc(a.id)}">
+        <div class="head">
+          <div>
+            <div class="t" style="font-weight:600">${esc(a.name)} <span style="color:var(--faint);font-weight:400;font-size:12.5px">· ${esc(a.year || "")} ${esc(a.major ? "· " + a.major : "")}</span></div>
+            <div class="s" style="color:var(--faint);font-size:12.5px">
+              <a href="mailto:${esc(a.email)}">${esc(a.email)}</a>
+              ${a.resume ? ` · <a href="${esc(a.resume)}" target="_blank" rel="noopener">Résumé ↗</a>` : ""}
+              · applied ${timeAgo(a.createdAt)}
+            </div>
+          </div>
+          <select class="input status-select" data-status>
+            ${APP_STATUSES.map((s) => `<option ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="note">"${esc(a.note)}"</div>
+      </div>`).join("");
+    box.querySelectorAll("[data-app]").forEach((row) => {
+      row.querySelector("[data-status]").addEventListener("change", async (e) => {
+        await store.setAppStatus(row.dataset.app, e.target.value);
+        toast(`Marked as ${e.target.value}.`);
+      });
+    });
+  }
+
+  // ----- post-a-job form -----
+  function openJobForm(user, profile) {
+    const inWeeks = (w) => new Date(Date.now() + w * 7 * 86400000).toISOString().slice(0, 10);
+    const overlay = openModal(`
+      <h3>Post an opportunity</h3>
+      <p class="sub">Free to post. Listings appear on the board immediately.</p>
+      <form id="jobForm">
+        <div class="field"><label>Role title</label>
+          <input class="input" name="title" required placeholder="Immigration Law Intern"></div>
+        <div class="field"><label>Organization</label>
+          <input class="input" name="org" required value="${esc(profile.orgName || "")}" placeholder="Your organization"></div>
+        <div class="field-row">
+          <div class="field"><label>Location</label>
+            <input class="input" name="city" required placeholder="Downtown LA / Remote (US)"></div>
+          <div class="field"><label>Work mode</label>
+            <select class="input" name="workMode">${WORK_MODES.map((m) => `<option>${m}</option>`).join("")}</select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Role type</label>
+            <select class="input" name="type">${JOB_TYPES.map((t) => `<option>${t}</option>`).join("")}</select></div>
+          <div class="field"><label>Compensation</label>
+            <select class="input" name="comp">${COMP_TYPES.map((c) => `<option>${c}</option>`).join("")}</select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Time commitment</label>
+            <input class="input" name="hours" required placeholder="8–12 hrs/week"></div>
+          <div class="field"><label>Application deadline</label>
+            <input class="input" name="deadline" type="date" required value="${inWeeks(4)}"></div>
+        </div>
+        <div class="field"><label>Practice areas (pick up to 4)</label>
+          <div class="topic-cloud" id="jobTopics" style="margin-top:4px">
+            ${TOPICS.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}
+          </div></div>
+        <div class="field"><label>Role description</label>
+          <textarea class="input" name="description" required placeholder="What will the student actually do?"></textarea></div>
+        <div class="field"><label>Requirements (one per line)</label>
+          <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
+        <button class="btn btn-gold btn-lg btn-block" type="submit">Publish listing</button>
+      </form>`, { large: true });
+
+    const picked = new Set();
+    $$("#jobTopics .chip", overlay).forEach((chip) =>
+      chip.addEventListener("click", () => {
+        const t = chip.dataset.t;
+        if (picked.has(t)) { picked.delete(t); chip.classList.remove("on"); }
+        else if (picked.size < 4) { picked.add(t); chip.classList.add("on"); }
+        else toast("Up to 4 practice areas.", true);
+      }));
+
+    $("#jobForm", overlay).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!picked.size) { toast("Pick at least one practice area.", true); return; }
+      const f = new FormData(e.target);
+      await store.createJob({
+        title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
+        workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
+        hours: f.get("hours").trim(), deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
+        topics: [...picked], description: f.get("description").trim(),
+        requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
+        ownerId: user.uid,
+      });
+      closeModal();
+      toast("Listing published — it's live on the board.");
+      renderEmployer(user);
+    });
+  }
+
+  function renderDash(user) {
+    user.role === "employer" ? renderEmployer(user) : renderStudent(user);
+  }
+</script>
+</body>
+</html>

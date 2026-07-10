@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Account records (role + display name), created at signup.
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // Student / organization profiles. Only the owner edits their own.
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+    }
+
+    // Job listings: public to browse; only the posting org can modify.
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Applications: visible to the applicant and the job's owner.
+    // Status updates are restricted to the job owner; students can't
+    // edit an application after submitting.
+    match /applications/{appId} {
+      allow read: if signedIn() &&
+        (resource.data.applicantId == request.auth.uid ||
+         resource.data.jobOwnerId == request.auth.uid);
+      allow create: if signedIn() &&
+        request.resource.data.applicantId == request.auth.uid;
+      allow update: if signedIn() &&
+        resource.data.jobOwnerId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+  }
+}
