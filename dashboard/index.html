@@ -97,12 +97,15 @@
             <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">${apps.length ? `${apps.length} application${apps.length === 1 ? "" : "s"} so far.` : "Nothing yet — your first application is one click away."}${apps.length ? " Check here for status updates — organizations or our team will follow up by email." : ""}</p>
             <div class="stack" id="appsList">
               ${apps.length ? apps.map((a) => `
-                <div class="list-row">
+                <div class="list-row" data-app="${esc(a.id)}">
                   <div>
                     <div class="t">${esc(a.jobTitle)}</div>
                     <div class="s">${esc(a.org)} · applied ${timeAgo(a.createdAt)}</div>
                   </div>
-                  <span class="chip ${statusChip(a.status)}">${esc(a.status)}</span>
+                  <div class="list-row-actions">
+                    <span class="chip ${statusChip(a.status)}">${esc(a.status)}</span>
+                    <button class="btn btn-danger btn-sm" type="button" data-del-app>Withdraw</button>
+                  </div>
                 </div>`).join("")
               : `<div class="empty-state" style="padding:40px 10px">
                    <div class="empty-ico"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M3 13 5 5h14l2 8v6H3v-6Z" stroke="#4553b8" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 13h5a4 4 0 0 0 8 0h5" stroke="#9a7714" stroke-width="1.7"/></svg></div>
@@ -122,6 +125,23 @@
       });
       toast("Profile saved ✓");
     });
+
+    $$("#appsList [data-del-app]").forEach((btn) =>
+      btn.addEventListener("click", async () => {
+        const row = btn.closest("[data-app]");
+        const appId = row?.dataset.app;
+        const title = row?.querySelector(".t")?.textContent || "this application";
+        if (!appId || !confirm(`Withdraw your application for "${title}"? This can't be undone.`)) return;
+        btn.disabled = true;
+        try {
+          await store.deleteApp(appId);
+          toast("Application withdrawn.");
+          renderStudent(user);
+        } catch (err) {
+          toast(err.message || "Could not withdraw application.", true);
+          btn.disabled = false;
+        }
+      }));
   }
 
   // ================= EMPLOYER =================
@@ -242,9 +262,16 @@
         });
         cardEl.querySelector("[data-act=del]").addEventListener("click", async () => {
           if (!confirm(`Delete "${job.title}" and its applications? This can't be undone.`)) return;
-          await store.deleteJob(jobId);
-          toast("Listing deleted.");
-          renderEmployer(user);
+          const btn = cardEl.querySelector("[data-act=del]");
+          btn.disabled = true;
+          try {
+            await store.deleteJob(jobId);
+            toast("Listing deleted.");
+            renderEmployer(user);
+          } catch (err) {
+            toast(err.message || "Could not delete listing.", true);
+            btn.disabled = false;
+          }
         });
       });
     } catch (err) {

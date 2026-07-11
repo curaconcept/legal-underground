@@ -41,7 +41,9 @@ service cloud.firestore {
       allow update: if signedIn() &&
         resource.data.jobOwnerId == request.auth.uid &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusUpdatedAt']);
-      allow delete: if false;
+      allow delete: if signedIn() &&
+        (resource.data.applicantId == request.auth.uid ||
+         resource.data.jobOwnerId == request.auth.uid);
     }
   }
 }

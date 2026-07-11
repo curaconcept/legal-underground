@@ -242,6 +242,15 @@ const demoBackend = {
     const i = apps.findIndex((a) => a.id === id);
     if (i >= 0) { apps[i].status = status; apps[i].statusUpdatedAt = Date.now(); lsSet(LS.apps, apps); }
   },
+  async deleteApp(id) {
+    const user = getUser();
+    if (!user) throw new Error("Sign in to manage applications.");
+    const apps = lsGet(LS.apps, []);
+    const app = apps.find((a) => a.id === id);
+    if (!app || app.applicantId !== user.uid)
+      throw new Error("Cannot delete this application.");
+    lsSet(LS.apps, apps.filter((a) => a.id !== id));
+  },
 };
 
 // ============================================================
@@ -338,6 +347,11 @@ const firebaseBackend = {
   async deleteJob(id) {
     const { fsMod, db } = fb;
     const user = getUser();
+    if (!user) throw new Error("Sign in to manage listings.");
+    const jobRef = fsMod.doc(db, "jobs", id);
+    const jobSnap = await fsMod.getDoc(jobRef);
+    if (!jobSnap.exists() || jobSnap.data().ownerId !== user.uid)
+      throw new Error("Cannot delete this listing.");
     const appsQ = fsMod.query(
       fsMod.collection(db, "applications"),
       fsMod.where("jobOwnerId", "==", user.uid),
@@ -346,7 +360,7 @@ const firebaseBackend = {
     const snap = await fsMod.getDocs(appsQ);
     const batch = fsMod.writeBatch(db);
     snap.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(fsMod.doc(db, "jobs", id));
+    batch.delete(jobRef);
     await batch.commit();
   },
 
@@ -391,6 +405,16 @@ const firebaseBackend = {
       status,
       statusUpdatedAt: Date.now(),
     });
+  },
+  async deleteApp(id) {
+    const { fsMod, db } = fb;
+    const user = getUser();
+    if (!user) throw new Error("Sign in to manage applications.");
+    const ref = fsMod.doc(db, "applications", id);
+    const snap = await fsMod.getDoc(ref);
+    if (!snap.exists() || snap.data().applicantId !== user.uid)
+      throw new Error("Cannot delete this application.");
+    await fsMod.deleteDoc(ref);
   },
 };
 
