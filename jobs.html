@@ -228,7 +228,9 @@
           <input class="input" name="resume" type="url" placeholder="https://…" value="${esc(profile.resume || "")}"></div>
         <div class="field"><label>Why are you a fit? (2–4 sentences)</label>
           <textarea class="input" name="note" required placeholder="I'm drawn to this role because…"></textarea></div>
-        <button class="btn btn-primary btn-lg btn-block modal-foot" type="submit">Submit application</button>
+        <div class="modal-foot">
+          <button class="btn btn-primary btn-lg btn-block" type="submit">Submit application</button>
+        </div>
       </form>`);
 
     $("#applyForm", overlay).addEventListener("submit", async (e) => {

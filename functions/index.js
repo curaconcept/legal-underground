@@ -22,6 +22,9 @@ const fromEmail = defineString("NOTIFY_FROM", {
 const siteUrl = defineString("SITE_URL", {
   default: "https://curaconcept.github.io/legal-underground",
 });
+const fallbackEmail = defineString("NOTIFY_FALLBACK_EMAIL", {
+  default: "legalu@g.ucla.edu",
+});
 
 function fmtDate(ts) {
   if (!ts) return "—";
@@ -41,7 +44,7 @@ async function resolveUserEmail(uid) {
   return prof.contact || user.email || null;
 }
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, { intendedTo } = {}) {
   const key = resendKey.value();
   if (!key) {
     console.log("Email skipped (no RESEND_API_KEY):", { to, subject });
@@ -51,24 +54,52 @@ async function sendEmail(to, subject, html) {
     console.log("Email skipped (no recipient):", { subject });
     return false;
   }
-  const res = await fetch("https://api.resend.com/emails", {
+
+  const payload = { from: fromEmail.value(), to: [to], subject, html };
+  let res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: fromEmail.value(),
-      to: [to],
-      subject,
-      html,
-    }),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    console.error("Resend error:", await res.text());
-    return false;
+
+  if (res.ok) return true;
+
+  const errText = await res.text();
+  console.error("Resend error:", errText);
+
+  // Resend test sender only delivers to the account owner until a domain is verified.
+  const fallback = fallbackEmail.value();
+  const isTestLimit = res.status === 403 && errText.includes("testing emails");
+  if (isTestLimit && fallback && fallback !== to) {
+    const fwdSubject = `[For ${intendedTo || to}] ${subject}`;
+    const note = `<p style="margin:0 0 18px;padding:12px 14px;background:#f8ecc8;border:1px solid #e8d48f;border-radius:8px;color:#9a7714;font-weight:600">Test mode — this was meant for <strong>${intendedTo || to}</strong>.</p>`;
+    const fwdHtml = html.replace(
+      /(<p style="font-size:13px;color:#9a7714;font-weight:700)/,
+      `${note}$1`,
+    );
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromEmail.value(),
+        to: [fallback],
+        subject: fwdSubject,
+        html: fwdHtml,
+      }),
+    });
+    if (res.ok) {
+      console.log("Sent via fallback to", fallback, "intended:", intendedTo || to);
+      return true;
+    }
+    console.error("Fallback send failed:", await res.text());
   }
-  return true;
+  return false;
 }
 
 function wrap(body) {
@@ -103,6 +134,7 @@ exports.onApplicationCreated = onDocumentCreated("applications/{appId}", async (
     employerEmail,
     `New application: ${app.jobTitle || "your listing"}`,
     html,
+    { intendedTo: employerEmail },
   );
 });
 
@@ -123,5 +155,6 @@ exports.onApplicationUpdated = onDocumentUpdated("applications/{appId}", async (
     after.email,
     `Application update: ${after.status} — ${after.jobTitle || "Legal Underground"}`,
     html,
+    { intendedTo: after.email },
   );
 });

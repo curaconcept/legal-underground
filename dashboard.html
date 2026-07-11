@@ -329,7 +329,9 @@
           <textarea class="input" name="description" required placeholder="What will the student actually do?"></textarea></div>
         <div class="field"><label>Requirements (one per line)</label>
           <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
-        <button class="btn btn-gold btn-lg btn-block modal-foot" type="submit">Publish listing</button>
+        <div class="modal-foot">
+          <button class="btn btn-gold btn-lg btn-block" type="submit">Publish listing</button>
+        </div>
       </form>`, { large: true });
 
     const picked = new Set();

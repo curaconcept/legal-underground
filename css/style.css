@@ -402,6 +402,8 @@ textarea.input { resize: vertical; min-height: 110px; }
   background: linear-gradient(to top, var(--white) 78%, transparent);
   border-top: 1px solid var(--border);
 }
+.modal-foot .btn-primary { background: var(--blue-deep); color: #fff; }
+.modal-foot .btn-gold { background: var(--gold-btn); color: var(--ink); }
 .modal-note { color: var(--brown); font-size: 13.5px; margin-top: 18px; padding: 12px 14px; background: var(--cream); border-radius: var(--radius-sm); border: 1px solid var(--border); }
 
 .locked { text-align: center; padding: 90px 24px; }
