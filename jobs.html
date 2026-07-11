@@ -249,7 +249,7 @@
           major: f.get("major").trim(), resume: f.get("resume").trim(),
         });
         closeModal();
-        toast("Application submitted — the organization will be notified by email.");
+        toast("Application submitted — track it on your dashboard.");
       } catch (err) {
         toast(err.message || "Could not submit application.", true);
       }

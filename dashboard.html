@@ -94,7 +94,7 @@
         <div>
           <div class="card">
             <h3 style="margin-bottom:6px">My applications</h3>
-            <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">${apps.length ? `${apps.length} application${apps.length === 1 ? "" : "s"} so far.` : "Nothing yet — your first application is one click away."}</p>
+            <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">${apps.length ? `${apps.length} application${apps.length === 1 ? "" : "s"} so far.` : "Nothing yet — your first application is one click away."}${apps.length ? " Check here for status updates — organizations or our team will follow up by email." : ""}</p>
             <div class="stack" id="appsList">
               ${apps.length ? apps.map((a) => `
                 <div class="list-row">
@@ -147,7 +147,7 @@
         <div>
           <div class="eyebrow" style="margin-bottom:8px">Organization dashboard</div>
           <h1>${esc(profile.orgName || user.name || "Your organization")}</h1>
-          <p class="sub">Post roles, review applicants, and move candidates through your pipeline.</p>
+          <p class="sub">Post roles, review applicants, and move candidates through your pipeline. Our team sends organizations a weekly summary of new applications by email.</p>
         </div>
         <button class="btn btn-gold" id="newJobBtn">+ Post an opportunity</button>
       </div>
@@ -287,7 +287,7 @@
         await store.setAppStatus(row.dataset.app, status);
         const app = (employerAppsByJob[jobId] || []).find((a) => a.id === row.dataset.app);
         if (app) app.status = status;
-        toast(`Marked as ${status}. Applicant will be notified by email.`);
+        toast(`Marked as ${status}. The student will see this on their dashboard.`);
       });
     });
   }
