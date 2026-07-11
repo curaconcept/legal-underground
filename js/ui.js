@@ -29,6 +29,83 @@ export function daysUntil(ts) {
   return Math.ceil((ts - Date.now()) / 86400000);
 }
 
+export function compChip(c) {
+  return c === "Paid" ? "chip-green" : c === "Stipend" || c === "School credit" ? "chip-gold" : "chip-muted";
+}
+
+/** Trigger a browser download of CSV text. */
+export function downloadCsv(filename, rows) {
+  const escCell = (v) => {
+    const s = String(v ?? "");
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = rows.map((row) => row.map(escCell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Build rows for exporting applicant data. */
+export function appsToCsvRows(apps, { includeJob = false } = {}) {
+  const header = includeJob
+    ? ["Job title", "Organization", "Name", "Email", "Year", "Major", "Résumé", "Status", "Applied", "Note"]
+    : ["Name", "Email", "Year", "Major", "Résumé", "Status", "Applied", "Note"];
+  const rows = [header];
+  apps.forEach((a) => {
+    const base = [
+      a.name, a.email, a.year || "", a.major || "", a.resume || "",
+      a.status, fmtDate(a.createdAt), a.note || "",
+    ];
+    rows.push(includeJob ? [a.jobTitle || "", a.org || "", ...base] : base);
+  });
+  return rows;
+}
+
+/**
+ * Job detail modal — shared by jobs board and employer dashboard.
+ * mode: "apply" (default), "preview" (read-only), "owner" (employer's own listing)
+ */
+export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
+  const dl = daysUntil(job.deadline);
+  const closed = job.status === "closed";
+  const foot = mode === "owner"
+    ? (closed
+      ? `<p class="modal-note">This listing is closed and hidden from the public board.</p>
+         <a class="btn btn-ghost btn-block" href="jobs.html">Go to opportunities board</a>`
+      : `<a class="btn btn-primary btn-block" href="jobs.html?job=${encodeURIComponent(job.id)}">View on public board ↗</a>`)
+    : mode === "preview"
+      ? `<p class="modal-note">Preview only — students see this on the opportunities board.</p>`
+      : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
+
+  const overlay = openModal(`
+    <div class="jd-head">
+      <span class="chip ${compChip(job.comp)}">${esc(job.comp)}</span>
+      ${closed ? `<span class="chip chip-muted" style="margin-left:6px">Closed</span>` : ""}
+      <h3 style="margin-top:12px">${esc(job.title)}</h3>
+      <div class="jd-org">${esc(job.org)}</div>
+    </div>
+    <div class="jd-facts">
+      <div class="jd-fact"><div class="k">Location</div><div class="v">${esc(job.city)}</div></div>
+      <div class="jd-fact"><div class="k">Work mode</div><div class="v">${esc(job.workMode)}</div></div>
+      <div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(job.hours)}</div></div>
+      <div class="jd-fact"><div class="k">Deadline</div><div class="v" style="color:${dl <= 7 ? "var(--red)" : "inherit"}">${fmtDate(job.deadline)}</div></div>
+    </div>
+    <div class="job-meta">${(job.topics || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+    <div class="jd-section"><h4>About the role</h4><p>${esc(job.description)}</p></div>
+    <div class="jd-section"><h4>What they're looking for</h4>
+      <ul>${(job.requirements || []).map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>
+    ${foot}`, { large: true });
+
+  if (mode === "apply" && onApply) {
+    $("#applyBtn", overlay)?.addEventListener("click", onApply);
+  }
+  return overlay;
+}
+
 // ---------- toasts ----------
 export function toast(msg, isErr = false) {
   let wrap = $(".toast-wrap");

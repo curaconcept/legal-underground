@@ -70,7 +70,7 @@
 </main>
 
 <script type="module">
-  import { bootPage, renderFooter, initReveal, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, daysUntil, $, $$ } from "./js/ui.js";
+  import { bootPage, renderFooter, initReveal, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, daysUntil, compChip, openJobDetailModal, $, $$ } from "./js/ui.js";
   import { store, getUser } from "./js/store.js";
   import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES } from "./js/config.js";
 
@@ -145,7 +145,7 @@
     return list;
   }
 
-  const compChip = (c) => c === "Paid" ? "chip-green" : c === "Stipend" || c === "School credit" ? "chip-gold" : "chip-muted";
+
   const PIN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 21c-4-2.5-7-6-7-10a7 7 0 1 1 14 0c0 4-3 7.5-7 10Z" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="11" r="2.4" stroke="currentColor" stroke-width="2.2"/></svg>`;
 
   function render() {
@@ -191,31 +191,14 @@
   function openJob(id) {
     const j = jobs.find((x) => x.id === id);
     if (!j) return;
-    const dl = daysUntil(j.deadline);
-    const overlay = openModal(`
-      <div class="jd-head">
-        <span class="chip ${compChip(j.comp)}">${esc(j.comp)}</span>
-        <h3 style="margin-top:12px">${esc(j.title)}</h3>
-        <div class="jd-org">${esc(j.org)}</div>
-      </div>
-      <div class="jd-facts">
-        <div class="jd-fact"><div class="k">Location</div><div class="v">${esc(j.city)}</div></div>
-        <div class="jd-fact"><div class="k">Work mode</div><div class="v">${esc(j.workMode)}</div></div>
-        <div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(j.hours)}</div></div>
-        <div class="jd-fact"><div class="k">Deadline</div><div class="v" style="color:${dl <= 7 ? "var(--red)" : "inherit"}">${fmtDate(j.deadline)}</div></div>
-      </div>
-      <div class="job-meta">${j.topics.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>
-      <div class="jd-section"><h4>About the role</h4><p>${esc(j.description)}</p></div>
-      <div class="jd-section"><h4>What they're looking for</h4>
-        <ul>${(j.requirements || []).map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>
-      <button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button>
-    `, { large: true });
-
-    $("#applyBtn", overlay).addEventListener("click", () => {
-      const user = getUser();
-      if (!user) { openAuthModal("signup", () => openApply(j)); return; }
-      if (user.role === "employer") { toast("Employer accounts can't apply — switch to a student account.", true); return; }
-      openApply(j);
+    openJobDetailModal(j, {
+      mode: "apply",
+      onApply: () => {
+        const user = getUser();
+        if (!user) { openAuthModal("signup", () => openApply(j)); return; }
+        if (user.role === "employer") { toast("Employer accounts can't apply — switch to a student account.", true); return; }
+        openApply(j);
+      },
     });
   }
 
@@ -245,7 +228,7 @@
           <input class="input" name="resume" type="url" placeholder="https://…" value="${esc(profile.resume || "")}"></div>
         <div class="field"><label>Why are you a fit? (2–4 sentences)</label>
           <textarea class="input" name="note" required placeholder="I'm drawn to this role because…"></textarea></div>
-        <button class="btn btn-primary btn-lg btn-block" type="submit">Submit application</button>
+        <button class="btn btn-primary btn-lg btn-block modal-foot" type="submit">Submit application</button>
       </form>`);
 
     $("#applyForm", overlay).addEventListener("submit", async (e) => {
@@ -264,7 +247,7 @@
           major: f.get("major").trim(), resume: f.get("resume").trim(),
         });
         closeModal();
-        toast("Application submitted — track it on your dashboard.");
+        toast("Application submitted — the organization will be notified by email.");
       } catch (err) {
         toast(err.message || "Could not submit application.", true);
       }

@@ -240,7 +240,7 @@ const demoBackend = {
   async setAppStatus(id, status) {
     const apps = lsGet(LS.apps, []);
     const i = apps.findIndex((a) => a.id === id);
-    if (i >= 0) { apps[i].status = status; lsSet(LS.apps, apps); }
+    if (i >= 0) { apps[i].status = status; apps[i].statusUpdatedAt = Date.now(); lsSet(LS.apps, apps); }
   },
 };
 
@@ -387,7 +387,10 @@ const firebaseBackend = {
   },
   async setAppStatus(id, status) {
     const { fsMod, db } = fb;
-    await fsMod.updateDoc(fsMod.doc(db, "applications", id), { status });
+    await fsMod.updateDoc(fsMod.doc(db, "applications", id), {
+      status,
+      statusUpdatedAt: Date.now(),
+    });
   },
 };
 

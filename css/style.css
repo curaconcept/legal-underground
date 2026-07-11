@@ -392,7 +392,17 @@ textarea.input { resize: vertical; min-height: 110px; }
 
 .applicant-row { padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--cream); }
 .applicant-row .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.applicant-row .note { color: var(--brown); font-size: 13.5px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.applicant-row .note { color: var(--brown); font-size: 13.5px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); word-break: break-word; }
+.applicant-row a { word-break: break-all; }
+
+.job-card-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.dash-export-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.modal-foot {
+  position: sticky; bottom: 0; margin-top: 18px; padding-top: 14px;
+  background: linear-gradient(to top, var(--white) 78%, transparent);
+  border-top: 1px solid var(--border);
+}
+.modal-note { color: var(--brown); font-size: 13.5px; margin-top: 18px; padding: 12px 14px; background: var(--cream); border-radius: var(--radius-sm); border: 1px solid var(--border); }
 
 .locked { text-align: center; padding: 90px 24px; }
 .locked .ico { display: inline-flex; margin-bottom: 18px; }
@@ -513,10 +523,22 @@ textarea.input { resize: vertical; min-height: 110px; }
   .fcheck { padding: 10px 0; min-height: 44px; }
 
   /* Dashboard & lists */
-  .dash-head { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 22px; }
+  .dash-head { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 22px; }
+  .dash-head .btn, .dash-head a.btn { width: 100%; justify-content: center; }
+  .dash-export-bar { flex-direction: column; }
+  .dash-export-bar .btn { width: 100%; justify-content: center; }
+  .job-card-actions { flex-direction: column; }
+  .job-card-actions .btn { width: 100%; justify-content: center; }
   .list-row { flex-direction: column; align-items: flex-start; gap: 10px; }
   .applicant-row .head { flex-direction: column; align-items: flex-start; }
   .status-select { width: 100%; }
+  .btn { white-space: normal; text-align: center; line-height: 1.35; }
+  .nav-user { max-width: none; flex: 1; min-width: 0; justify-content: center; }
+  .nav-user span:last-child { max-width: 88px; }
+  .hero-intro { text-align: center; }
+  .hero .lede, .hero-badge, .hero-body { text-align: left; }
+  .hero-intro .hero-badge, .hero-intro h1 { text-align: center; }
+  .marquee-track { animation-duration: 55s; }
 
   /* Guide & FAQ */
   .guide-hero { padding: 10px 0 36px; }
@@ -543,6 +565,10 @@ textarea.input { resize: vertical; min-height: 110px; }
   .btn-lg { padding: 14px 24px; font-size: 15px; }
   .toast-wrap { bottom: max(20px, env(safe-area-inset-bottom)); width: calc(100% - 32px); }
   .toast { width: 100%; justify-content: center; text-align: center; }
+  .modal { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .input, select.input, textarea.input { font-size: 16px; }
+  .jd-head { padding-right: 0; }
+  .jd-head h3 { font-size: 22px; word-break: break-word; }
 
   /* Touch polish */
   .card-hover:hover { transform: none; }
@@ -558,3 +584,8 @@ textarea.input { resize: vertical; min-height: 110px; }
 }
 
 .filters-toggle { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  html { scroll-behavior: auto; }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "legal-underground-functions",
+  "description": "Email notifications for Legal Underground",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.1"
+  }
+}

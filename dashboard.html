@@ -17,7 +17,7 @@
 </main>
 
 <script type="module">
-  import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, $, $$ } from "./js/ui.js";
+  import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, openJobDetailModal, downloadCsv, appsToCsvRows, $, $$ } from "./js/ui.js";
   import { store, onAuth, getUser } from "./js/store.js";
   import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES } from "./js/config.js";
 
@@ -126,21 +126,23 @@
 
   // ================= EMPLOYER =================
   async function renderEmployer(user) {
-    const [profile, myJobs, allApps] = await Promise.all([
-      store.getProfile(user.uid).then((p) => p || {}),
-      store.listJobsByOwner(user.uid),
-      store.listAppsByOwner(user.uid),
-    ]);
-    employerAppsByJob = {};
-    allApps.forEach((a) => {
-      (employerAppsByJob[a.jobId] ||= []).push(a);
-    });
-    Object.values(employerAppsByJob).forEach((list) =>
-      list.sort((a, b) => b.createdAt - a.createdAt));
-    const appCounts = Object.fromEntries(myJobs.map((j) =>
-      [j.id, (employerAppsByJob[j.id] || []).length]));
+    root.innerHTML = `<div class="card" style="text-align:center;padding:48px"><p style="color:var(--brown)">Loading your dashboard…</p></div>`;
+    try {
+      const [profile, myJobs, allApps] = await Promise.all([
+        store.getProfile(user.uid).then((p) => p || {}),
+        store.listJobsByOwner(user.uid),
+        store.listAppsByOwner(user.uid),
+      ]);
+      employerAppsByJob = {};
+      allApps.forEach((a) => {
+        (employerAppsByJob[a.jobId] ||= []).push(a);
+      });
+      Object.values(employerAppsByJob).forEach((list) =>
+        list.sort((a, b) => b.createdAt - a.createdAt));
+      const appCounts = Object.fromEntries(myJobs.map((j) =>
+        [j.id, (employerAppsByJob[j.id] || []).length]));
 
-    root.innerHTML = `
+      root.innerHTML = `
       <div class="dash-head">
         <div>
           <div class="eyebrow" style="margin-bottom:8px">Organization dashboard</div>
@@ -167,6 +169,10 @@
           </div>
         </div>
         <div class="stack" id="jobsCol">
+          ${allApps.length ? `
+            <div class="dash-export-bar">
+              <button class="btn btn-ghost btn-sm" type="button" id="exportAllBtn">Export all applicants (CSV)</button>
+            </div>` : ""}
           ${myJobs.length ? myJobs.map((j) => `
             <div class="card" data-job="${esc(j.id)}">
               <div class="job-card-top">
@@ -179,8 +185,10 @@
                 </div>
                 <span class="chip ${j.status === "open" ? "chip-green" : "chip-muted"}">${j.status === "open" ? "Open" : "Closed"}</span>
               </div>
-              <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+              <div class="job-card-actions">
+                <button class="btn btn-primary btn-sm" data-act="view">View listing</button>
                 <button class="btn btn-ghost btn-sm" data-act="apps">View applicants</button>
+                ${appCounts[j.id] ? `<button class="btn btn-ghost btn-sm" data-act="export">Export CSV</button>` : ""}
                 <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "open" ? "Close listing" : "Reopen"}</button>
                 <button class="btn btn-danger btn-sm" data-act="del">Delete</button>
               </div>
@@ -194,34 +202,57 @@
         </div>
       </div>`;
 
-    $("#orgForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const f = new FormData(e.target);
-      await store.saveProfile(user.uid, {
-        orgName: f.get("orgName").trim(), website: f.get("website").trim(),
-        contact: f.get("contact").trim(), about: f.get("about").trim(),
+      $("#orgForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const f = new FormData(e.target);
+        await store.saveProfile(user.uid, {
+          orgName: f.get("orgName").trim(), website: f.get("website").trim(),
+          contact: f.get("contact").trim(), about: f.get("about").trim(),
+        });
+        toast("Organization profile saved ✓");
       });
-      toast("Organization profile saved ✓");
-    });
 
-    $("#newJobBtn").addEventListener("click", () => openJobForm(user, profile));
+      $("#newJobBtn").addEventListener("click", () => openJobForm(user, profile));
 
-    $$("#jobsCol [data-job]").forEach((cardEl) => {
-      const jobId = cardEl.dataset.job;
-      const job = myJobs.find((j) => j.id === jobId);
-      cardEl.querySelector("[data-act=apps]").addEventListener("click", () => toggleApps(cardEl, jobId));
-      cardEl.querySelector("[data-act=toggle]").addEventListener("click", async () => {
-        await store.updateJob(jobId, { status: job.status === "open" ? "closed" : "open" });
-        toast(job.status === "open" ? "Listing closed." : "Listing reopened.");
-        renderEmployer(user);
+      $("#exportAllBtn")?.addEventListener("click", () => {
+        const slug = (profile.orgName || "applicants").replace(/[^\w]+/g, "-").slice(0, 40);
+        downloadCsv(`${slug}-all-applicants.csv`, appsToCsvRows(allApps, { includeJob: true }));
+        toast("CSV downloaded ✓");
       });
-      cardEl.querySelector("[data-act=del]").addEventListener("click", async () => {
-        if (!confirm(`Delete "${job.title}" and its applications? This can't be undone.`)) return;
-        await store.deleteJob(jobId);
-        toast("Listing deleted.");
-        renderEmployer(user);
+
+      $$("#jobsCol [data-job]").forEach((cardEl) => {
+        const jobId = cardEl.dataset.job;
+        const job = myJobs.find((j) => j.id === jobId);
+        cardEl.querySelector("[data-act=view]").addEventListener("click", () => openJobDetailModal(job, { mode: "owner" }));
+        cardEl.querySelector("[data-act=apps]").addEventListener("click", () => toggleApps(cardEl, jobId));
+        cardEl.querySelector("[data-act=export]")?.addEventListener("click", () => {
+          const apps = employerAppsByJob[jobId] || [];
+          const slug = job.title.replace(/[^\w]+/g, "-").slice(0, 40);
+          downloadCsv(`${slug}-applicants.csv`, appsToCsvRows(apps));
+          toast("CSV downloaded ✓");
+        });
+        cardEl.querySelector("[data-act=toggle]").addEventListener("click", async () => {
+          await store.updateJob(jobId, { status: job.status === "open" ? "closed" : "open" });
+          toast(job.status === "open" ? "Listing closed." : "Listing reopened.");
+          renderEmployer(user);
+        });
+        cardEl.querySelector("[data-act=del]").addEventListener("click", async () => {
+          if (!confirm(`Delete "${job.title}" and its applications? This can't be undone.`)) return;
+          await store.deleteJob(jobId);
+          toast("Listing deleted.");
+          renderEmployer(user);
+        });
       });
-    });
+    } catch (err) {
+      console.error(err);
+      root.innerHTML = `
+        <div class="card empty-state">
+          <h3>Couldn't load dashboard</h3>
+          <p style="color:var(--brown);margin:12px 0 20px">${esc(err.message || "Something went wrong. Try refreshing.")}</p>
+          <button class="btn btn-primary" id="retryDash">Try again</button>
+        </div>`;
+      $("#retryDash").addEventListener("click", () => renderEmployer(user));
+    }
   }
 
   async function toggleApps(cardEl, jobId) {
@@ -252,8 +283,11 @@
       </div>`).join("");
     box.querySelectorAll("[data-app]").forEach((row) => {
       row.querySelector("[data-status]").addEventListener("change", async (e) => {
-        await store.setAppStatus(row.dataset.app, e.target.value);
-        toast(`Marked as ${e.target.value}.`);
+        const status = e.target.value;
+        await store.setAppStatus(row.dataset.app, status);
+        const app = (employerAppsByJob[jobId] || []).find((a) => a.id === row.dataset.app);
+        if (app) app.status = status;
+        toast(`Marked as ${status}. Applicant will be notified by email.`);
       });
     });
   }
@@ -295,7 +329,7 @@
           <textarea class="input" name="description" required placeholder="What will the student actually do?"></textarea></div>
         <div class="field"><label>Requirements (one per line)</label>
           <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
-        <button class="btn btn-gold btn-lg btn-block" type="submit">Publish listing</button>
+        <button class="btn btn-gold btn-lg btn-block modal-foot" type="submit">Publish listing</button>
       </form>`, { large: true });
 
     const picked = new Set();
