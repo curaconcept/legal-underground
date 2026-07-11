@@ -2,6 +2,7 @@
 // LEGAL UNDERGROUND — Shared UI: nav, auth modal, toasts, helpers
 // ============================================================
 import { store, ready, onAuth, getUser, MODE } from "./store.js";
+import { CLUB_SITE_URL } from "./config.js";
 
 // ---------- tiny helpers ----------
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -162,6 +163,7 @@ export function renderNav(active = "") {
       <a class="brand" href="index.html">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
       <div class="nav-links" id="navLinks">
         <a href="jobs.html" class="${active === "jobs" ? "active" : ""}">Opportunities</a>
+        <a href="index.html#about" class="${active === "about" ? "active" : ""}">About the club</a>
         <a href="guide.html" class="${active === "guide" ? "active" : ""}">How it works</a>
         <a href="dashboard.html" class="${active === "dash" ? "active" : ""}">Dashboard</a>
       </div>
@@ -309,8 +311,10 @@ export function renderFooter() {
       </div>
       <div class="footer-links">
         <a href="jobs.html">Opportunities</a>
+        <a href="index.html#about">About the club</a>
         <a href="guide.html">How it works</a>
         <a href="dashboard.html">Dashboard</a>
+        <a href="${CLUB_SITE_URL}" target="_blank" rel="noopener">Club website ↗</a>
         <a href="mailto:legalunderground@g.ucla.edu">Contact</a>
       </div>
     </div>`;

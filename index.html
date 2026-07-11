@@ -107,6 +107,57 @@
   <div class="marquee-track" id="marqueeTrack"></div>
 </div>
 
+<!-- ============ ABOUT THE CLUB ============ -->
+<section class="section" id="about">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Who we are</div>
+      <h2>UCLA's pre-law club — <span class="grad-text">social, accessible, and free</span></h2>
+      <p>This board is one part of Legal Underground. We're also a registered student organization building community on campus.</p>
+    </div>
+    <div class="about-grid">
+      <div class="card reveal">
+        <h3 style="margin-bottom:14px;font-size:20px">A pre-law social club</h3>
+        <ul class="about-list">
+          <li><b>No application, interview, or fee</b> — all UCLA students are welcome.</li>
+          <li>Socials and professional events that help you integrate into the pre-law community.</li>
+          <li>Connect with hundreds of Bruins through our GroupMe and Instagram.</li>
+          <li>This opportunities board — free internships, clinics, and research roles from partner organizations.</li>
+        </ul>
+      </div>
+      <div class="card card-solid about-mission reveal reveal-d1">
+        <h3 style="margin-bottom:12px;font-size:20px">Our mission</h3>
+        <p style="color:var(--brown);font-size:15px;margin-bottom:18px">Legal Underground engages pre-law-minded UCLA students to collaborate in a primarily social environment — covering the LSAT, admissions, mentoring, and the path to law school through guest speakers, group efforts, and real-world experience.</p>
+        <div class="about-values">
+          <span class="chip chip-gold">Accessibility</span>
+          <span class="chip chip-gold">Inclusion</span>
+          <span class="chip chip-gold">Social well-being</span>
+        </div>
+      </div>
+    </div>
+    <div class="club-resources reveal reveal-d2">
+      <div class="card card-hover club-resource">
+        <h4>Free LSAT tutoring</h4>
+        <p>Peer tutoring and a published schedule — details on our club site.</p>
+      </div>
+      <div class="card card-hover club-resource">
+        <h4>Workshops &amp; guest speakers</h4>
+        <p>Professional events on admissions, legal careers, and skill-building.</p>
+      </div>
+      <div class="card card-hover club-resource">
+        <h4>Events &amp; the board</h4>
+        <p>Upcoming socials, constitution, partnerships, and how to become a general member.</p>
+      </div>
+    </div>
+    <div class="club-cta reveal reveal-d3">
+      <p>Newsletter signup, LSAT schedule, the board roster, and more live on our official club homepage.</p>
+      <a class="btn btn-primary btn-lg" id="clubSiteBtn" href="https://sites.google.com/view/legal-underground-ucla/home" target="_blank" rel="noopener">
+        Visit our club website ↗
+      </a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ HOW IT WORKS ============ -->
 <section class="section">
   <div class="container">
@@ -184,11 +235,13 @@
 
 <script type="module">
   import { bootPage, renderFooter, initReveal } from "./js/ui.js";
-  import { TOPICS } from "./js/config.js";
+  import { TOPICS, CLUB_SITE_URL } from "./js/config.js";
 
   await bootPage("home");
   renderFooter();
   initReveal();
+
+  document.getElementById("clubSiteBtn")?.setAttribute("href", CLUB_SITE_URL);
 
   // marquee: duplicate the topic list so the loop is seamless
   const track = document.getElementById("marqueeTrack");

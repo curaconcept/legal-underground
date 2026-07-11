@@ -280,6 +280,19 @@ textarea.input { resize: vertical; min-height: 110px; }
 .marquee .chip { font-size: 13px; padding: 8px 18px; background: var(--white); }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
+/* about the club (homepage) */
+.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; align-items: start; }
+.about-list { list-style: none; display: grid; gap: 12px; color: var(--brown); font-size: 14.5px; }
+.about-list li { padding-left: 18px; position: relative; }
+.about-list li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+.about-mission { background: var(--cream); border-color: var(--border-strong); }
+.about-values { display: flex; flex-wrap: wrap; gap: 8px; }
+.club-resources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+.club-resource h4 { font-family: var(--font-body); font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.club-resource p { color: var(--brown); font-size: 13.5px; }
+.club-cta { text-align: center; padding: 32px 24px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); }
+.club-cta p { color: var(--brown); max-width: 520px; margin: 0 auto 20px; font-size: 15px; }
+
 /* features */
 .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .feat-card .ico {
@@ -451,6 +464,7 @@ textarea.input { resize: vertical; min-height: 110px; }
   .hero-art { margin: 6px auto 14px; }
   .hero-art svg { max-width: min(260px, 62vw); }
   .feat-grid { grid-template-columns: 1fr 1fr; }
+  .about-grid, .club-resources { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr 1fr; }
   .jobs-layout { grid-template-columns: 1fr; }
   .filters { position: static; max-height: none; }
@@ -505,6 +519,8 @@ textarea.input { resize: vertical; min-height: 110px; }
   .scroll-hint { display: none; }
 
   /* Grids & cards */
+  .about-grid, .club-resources { grid-template-columns: 1fr; }
+  .club-cta .btn { width: 100%; max-width: 360px; }
   .feat-grid, .steps { grid-template-columns: 1fr; gap: 16px; }
   .card { padding: 20px; }
   .field-row { grid-template-columns: 1fr; }

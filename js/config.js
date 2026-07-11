@@ -12,6 +12,9 @@ export { firebaseConfig };
 export const FIREBASE_ENABLED =
   !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
 
+/** Official UCLA club site (Google Sites) — events, LSAT tutoring, membership, board. */
+export const CLUB_SITE_URL = "https://sites.google.com/view/legal-underground-ucla/home";
+
 // Practice areas offered in filters and posting forms.
 export const TOPICS = [
   "Immigration", "Criminal Law", "Civil Rights", "Intellectual Property",
