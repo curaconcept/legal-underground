@@ -19,7 +19,7 @@
 <script type="module">
   import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, openJobDetailModal, downloadCsv, appsToCsvRows, $, $$ } from "../js/ui.js";
   import { store, onAuth, getUser } from "../js/store.js";
-  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES, jobStatusLabel, jobStatusChipClass, formatHoursPerWeek, displayHours } from "../js/config.js";
+  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES, jobStatusLabel, jobStatusChipClass, formatHoursPerWeek, displayHours, parseHoursToMinMax } from "../js/config.js";
 
   await bootPage("dash");
   renderFooter();
@@ -218,6 +218,7 @@
                   : j.status === "soon"
                     ? `<button class="btn btn-gold btn-sm" data-act="openApps">Open applications</button>`
                     : ""}
+                <button class="btn btn-ghost btn-sm" data-act="edit">Edit</button>
                 <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "closed" ? "Reopen" : "Close listing"}</button>
                 <button class="btn btn-danger btn-sm" data-act="del">Delete</button>
               </div>
@@ -253,6 +254,7 @@
         const jobId = cardEl.dataset.job;
         const job = myJobs.find((j) => j.id === jobId);
         cardEl.querySelector("[data-act=view]").addEventListener("click", () => openJobDetailModal(job, { mode: "owner" }));
+        cardEl.querySelector("[data-act=edit]").addEventListener("click", () => openJobForm(user, profile, job));
         cardEl.querySelector("[data-act=apps]")?.addEventListener("click", () => toggleApps(cardEl, jobId));
         cardEl.querySelector("[data-act=export]")?.addEventListener("click", () => {
           const apps = employerAppsByJob[jobId] || [];
@@ -339,84 +341,90 @@
     });
   }
 
-  // ----- post-a-job form -----
-  function openJobForm(user, profile) {
+  // ----- post / edit job form -----
+  function openJobForm(user, profile, editJob = null) {
+    const isEdit = !!editJob;
     const inWeeks = (w) => new Date(Date.now() + w * 7 * 86400000).toISOString().slice(0, 10);
-    let postType = "full";
+    const toInputDate = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : "");
+    const optSel = (val, list) => list.map((x) => `<option ${x === val ? "selected" : ""}>${esc(x)}</option>`).join("");
+    const { min: initHoursMin, max: initHoursMax } = parseHoursToMinMax(editJob?.hours || "");
+    let postType = editJob?.applyUrl ? "link" : "full";
     const overlay = openModal(`
-      <h3>Post an opportunity</h3>
-      <p class="sub">Free to post. Choose a full listing or just share a link to your own application.</p>
+      <h3>${isEdit ? "Edit opportunity" : "Post an opportunity"}</h3>
+      <p class="sub">${isEdit ? "Update your listing details anytime." : "Free to post. Choose a full listing or just share a link to your own application."}</p>
       <div class="tabs" id="postTypeTabs">
-        <button type="button" data-post="full" class="active">Full listing</button>
-        <button type="button" data-post="link">Application link</button>
+        <button type="button" data-post="full" class="${postType === "full" ? "active" : ""}">Full listing</button>
+        <button type="button" data-post="link" class="${postType === "link" ? "active" : ""}">Application link</button>
       </div>
       <p class="modal-note" id="postTypeHint">Students apply through Legal Underground — you review applicants on your dashboard.</p>
       <form id="jobForm">
         <div class="field"><label>Role title</label>
-          <input class="input" name="title" required placeholder="Immigration Law Intern"></div>
+          <input class="input" name="title" required placeholder="Immigration Law Intern" value="${esc(editJob?.title || "")}"></div>
         <div class="field"><label>Organization</label>
-          <input class="input" name="org" required value="${esc(profile.orgName || "")}" placeholder="Your organization"></div>
+          <input class="input" name="org" required value="${esc(editJob?.org || profile.orgName || "")}" placeholder="Your organization"></div>
 
-        <div id="linkFields" style="display:none">
+        <div id="linkFields" style="display:${postType === "link" ? "block" : "none"}">
           <div class="field"><label>Application link</label>
-            <input class="input" name="applyUrl" type="url" placeholder="https://yourorg.org/careers/intern-application"></div>
+            <input class="input" name="applyUrl" type="url" placeholder="https://yourorg.org/careers/intern-application" value="${esc(editJob?.applyUrl || "")}"></div>
           <p class="modal-note" style="margin-top:-4px">Students click through to apply on your site. Add optional details below so the board still shows context.</p>
         </div>
 
-        <div id="fullFields">
+        <div id="fullFields" style="display:${postType === "full" ? "block" : "none"}">
           <div class="field-row">
             <div class="field"><label>Location</label>
-              <input class="input" name="city" placeholder="Downtown LA / Remote (US)"></div>
+              <input class="input" name="city" placeholder="Downtown LA / Remote (US)" value="${esc(editJob?.applyUrl ? "" : (editJob?.city || ""))}"></div>
             <div class="field"><label>Work mode</label>
-              <select class="input" name="workMode">${WORK_MODES.map((m) => `<option>${m}</option>`).join("")}</select></div>
+              <select class="input" name="workMode">${optSel(editJob?.workMode || WORK_MODES[0], WORK_MODES)}</select></div>
           </div>
           <div class="field-row">
             <div class="field"><label>Role type</label>
-              <select class="input" name="type">${JOB_TYPES.map((t) => `<option>${t}</option>`).join("")}</select></div>
+              <select class="input" name="type">${optSel(editJob?.type || JOB_TYPES[0], JOB_TYPES)}</select></div>
             <div class="field"><label>Compensation</label>
-              <select class="input" name="comp">${COMP_TYPES.map((c) => `<option>${c}</option>`).join("")}</select></div>
+              <select class="input" name="comp">${optSel(editJob?.comp || COMP_TYPES[0], COMP_TYPES)}</select></div>
           </div>
           <div class="field"><label>Application deadline</label>
-            <input class="input" name="deadline" type="date" value="${inWeeks(4)}"></div>
+            <input class="input" name="deadline" type="date" value="${toInputDate(editJob?.deadline) || inWeeks(4)}"></div>
           <div class="field"><label>Requirements (one per line)</label>
-            <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
+            <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus">${esc((editJob?.requirements || []).join("\n"))}</textarea></div>
         </div>
 
         <div id="sharedOptional">
           <div class="field" id="hoursField">
             <label>Hours per week <span id="hoursReq" style="font-weight:400;color:var(--faint)">(required)</span></label>
             <div class="hours-range">
-              <input class="input" name="hoursMin" type="number" min="1" max="80" step="1" placeholder="8" inputmode="numeric">
+              <input class="input" name="hoursMin" type="number" min="1" max="80" step="1" placeholder="8" inputmode="numeric" value="${esc(initHoursMin)}">
               <span class="hours-sep">to</span>
-              <input class="input" name="hoursMax" type="number" min="1" max="80" step="1" placeholder="12" inputmode="numeric">
+              <input class="input" name="hoursMax" type="number" min="1" max="80" step="1" placeholder="12" inputmode="numeric" value="${esc(initHoursMax)}">
               <span class="hours-suffix">hrs/week</span>
             </div>
             <p class="hours-hint">Use the same number twice for a fixed weekly commitment (e.g. 10 and 10 → 10 hrs/week).</p>
           </div>
-          <div class="field-row" id="linkOptionalRow" style="display:none">
+          <div class="field-row" id="linkOptionalRow" style="display:${postType === "link" ? "grid" : "none"}">
             <div class="field"><label>Location <span style="font-weight:400;color:var(--faint)">(optional)</span></label>
-              <input class="input" name="linkCity" placeholder="Downtown LA / Remote (US)"></div>
+              <input class="input" name="linkCity" placeholder="Downtown LA / Remote (US)" value="${esc(editJob?.applyUrl ? (editJob?.city || "") : "")}"></div>
             <div class="field"><label>Application deadline <span style="font-weight:400;color:var(--faint)">(optional)</span></label>
-              <input class="input" name="linkDeadline" type="date" value="${inWeeks(4)}"></div>
+              <input class="input" name="linkDeadline" type="date" value="${toInputDate(editJob?.deadline) || inWeeks(4)}"></div>
           </div>
           <div class="field"><label>Practice areas <span id="topicsReq" style="font-weight:400;color:var(--faint)">(pick up to 4)</span></label>
             <div class="topic-cloud" id="jobTopics" style="margin-top:4px">
-              ${TOPICS.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}
+              ${TOPICS.map((t) => `<span class="chip${(editJob?.topics || []).includes(t) ? " on" : ""}" data-t="${esc(t)}">${esc(t)}</span>`).join("")}
             </div></div>
           <div class="field"><label>Role description <span id="descReq" style="font-weight:400;color:var(--faint)">(required)</span></label>
-            <textarea class="input" name="description" placeholder="What will the student actually do?"></textarea></div>
-          <label class="auth-legal" style="margin-top:4px">
-            <input type="checkbox" name="acceptingSoon">
-            <span><b>Accepting applications soon</b> — show on the board now, but don't allow students to apply yet.</span>
-          </label>
+            <textarea class="input" name="description" placeholder="What will the student actually do?">${esc(editJob?.description || "")}</textarea></div>
+          ${isEdit && editJob.status === "closed"
+            ? `<p class="modal-note">This listing is closed. Reopen it from your dashboard when you're ready to accept applications again.</p>`
+            : `<label class="auth-legal" style="margin-top:4px">
+                <input type="checkbox" name="acceptingSoon" ${editJob?.status === "soon" ? "checked" : ""}>
+                <span><b>Accepting applications soon</b> — show on the board now, but don't allow students to apply yet.</span>
+              </label>`}
         </div>
 
         <div class="modal-foot">
-          <button class="btn btn-gold btn-lg btn-block" type="submit" id="jobSubmitBtn">Publish listing</button>
+          <button class="btn btn-gold btn-lg btn-block" type="submit" id="jobSubmitBtn">${isEdit ? "Save changes" : "Publish listing"}</button>
         </div>
       </form>`, { large: true });
 
-    const picked = new Set();
+    const picked = new Set(editJob?.topics || []);
     const setPostType = (type) => {
       postType = type;
       $$("#postTypeTabs button", overlay).forEach((b) => b.classList.toggle("active", b.dataset.post === type));
@@ -436,11 +444,12 @@
       const city = $("[name=city]", overlay);
       const deadline = $("[name=deadline]", overlay);
       city.required = deadline.required = type === "full";
-      $("#jobSubmitBtn", overlay).textContent = type === "link" ? "Publish link listing" : "Publish listing";
+      const btnLabel = isEdit ? "Save changes" : (type === "link" ? "Publish link listing" : "Publish listing");
+      $("#jobSubmitBtn", overlay).textContent = btnLabel;
     };
     $$("#postTypeTabs button", overlay).forEach((b) =>
       b.addEventListener("click", () => setPostType(b.dataset.post)));
-    setPostType("full");
+    setPostType(postType);
 
     $$("#jobTopics .chip", overlay).forEach((chip) =>
       chip.addEventListener("click", () => {
@@ -454,7 +463,9 @@
       e.preventDefault();
       const f = new FormData(e.target);
       const applyUrl = (f.get("applyUrl") || "").trim();
-      const listingStatus = f.get("acceptingSoon") ? "soon" : "open";
+      const listingStatus = isEdit && editJob.status === "closed"
+        ? "closed"
+        : (f.get("acceptingSoon") ? "soon" : "open");
       const hoursMinVal = f.get("hoursMin");
       const hoursMaxVal = f.get("hoursMax") || hoursMinVal;
       if (hoursMinVal && Number(hoursMaxVal) < Number(hoursMinVal)) {
@@ -462,48 +473,57 @@
         return;
       }
       const hours = formatHoursPerWeek(hoursMinVal, hoursMaxVal);
+      const btn = $("#jobSubmitBtn", overlay);
+      btn.disabled = true;
 
-      if (postType === "link") {
-        if (!applyUrl) { toast("Paste your application link.", true); return; }
-        try { new URL(applyUrl); } catch { toast("Enter a valid application URL (https://…).", true); return; }
-        const linkDeadline = f.get("linkDeadline");
-        await store.createJob({
-          title: f.get("title").trim(),
-          org: f.get("org").trim(),
-          applyUrl,
-          city: f.get("linkCity").trim(),
-          workMode: "",
-          type: "Internship",
-          comp: "Unpaid",
-          hours,
-          deadline: linkDeadline ? new Date(linkDeadline + "T23:59:59").getTime() : null,
-          topics: [...picked],
-          description: f.get("description").trim() || "Apply directly on the organization's website.",
-          requirements: [],
-          ownerId: user.uid,
-          status: listingStatus,
-        });
-      } else {
-        if (!picked.size) { toast("Pick at least one practice area.", true); return; }
-        if (!f.get("city").trim() || !hours || !f.get("deadline")) {
-          toast("Fill in location, hours per week, and deadline.", true);
-          return;
+      try {
+        if (postType === "link") {
+          if (!applyUrl) { toast("Paste your application link.", true); btn.disabled = false; return; }
+          try { new URL(applyUrl); } catch { toast("Enter a valid application URL (https://…).", true); btn.disabled = false; return; }
+          const linkDeadline = f.get("linkDeadline");
+          const payload = {
+            title: f.get("title").trim(),
+            org: f.get("org").trim(),
+            applyUrl,
+            city: f.get("linkCity").trim(),
+            workMode: "",
+            type: "Internship",
+            comp: "Unpaid",
+            hours,
+            deadline: linkDeadline ? new Date(linkDeadline + "T23:59:59").getTime() : null,
+            topics: [...picked],
+            description: f.get("description").trim() || "Apply directly on the organization's website.",
+            requirements: [],
+            status: listingStatus,
+          };
+          if (isEdit) await store.updateJob(editJob.id, payload);
+          else await store.createJob({ ...payload, ownerId: user.uid });
+        } else {
+          if (!picked.size) { toast("Pick at least one practice area.", true); btn.disabled = false; return; }
+          if (!f.get("city").trim() || !hours || !f.get("deadline")) {
+            toast("Fill in location, hours per week, and deadline.", true); btn.disabled = false; return;
+          }
+          const payload = {
+            title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
+            workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
+            hours, deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
+            topics: [...picked], description: f.get("description").trim(),
+            requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
+            applyUrl: "",
+            status: listingStatus,
+          };
+          if (isEdit) await store.updateJob(editJob.id, payload);
+          else await store.createJob({ ...payload, ownerId: user.uid });
         }
-        await store.createJob({
-          title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
-          workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
-          hours, deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
-          topics: [...picked], description: f.get("description").trim(),
-          requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
-          ownerId: user.uid,
-          status: listingStatus,
-        });
+        closeModal();
+        toast(isEdit ? "Listing updated ✓" : listingStatus === "soon"
+          ? "Listing published — accepting applications soon."
+          : postType === "link" ? "Link listing published — students can apply on your site." : "Listing published — it's live on the board.");
+        renderEmployer(user);
+      } catch (err) {
+        toast(err.message || "Could not save listing.", true);
+        btn.disabled = false;
       }
-      closeModal();
-      toast(listingStatus === "soon"
-        ? "Listing published — accepting applications soon."
-        : postType === "link" ? "Link listing published — students can apply on your site." : "Listing published — it's live on the board.");
-      renderEmployer(user);
     });
   }
 

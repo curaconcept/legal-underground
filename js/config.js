@@ -87,3 +87,13 @@ export function displayHours(hours) {
   if (single) return formatHoursPerWeek(single[1], single[1]);
   return s;
 }
+
+/** Parse a stored hours string into min/max for form inputs. */
+export function parseHoursToMinMax(hours) {
+  const d = displayHours(hours);
+  const range = d.match(/^(\d+)–(\d+) hrs\/week$/);
+  if (range) return { min: range[1], max: range[2] };
+  const single = d.match(/^(\d+) hrs\/week$/);
+  if (single) return { min: single[1], max: single[1] };
+  return { min: "", max: "" };
+}
