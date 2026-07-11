@@ -47,3 +47,18 @@ export const WORK_MODES = ["Remote", "Hybrid", "In-person"];
 export const JOB_TYPES = ["Internship", "Volunteer", "Clerkship", "Research"];
 export const COMP_TYPES = ["Paid", "Stipend", "School credit", "Unpaid"];
 export const APP_STATUSES = ["Submitted", "Reviewed", "Interview", "Accepted", "Declined"];
+
+/** Job listing visibility on the public board. */
+export const JOB_BOARD_STATUSES = ["open", "soon"];
+
+export function isJobAcceptingApplications(job) {
+  return job?.status === "open";
+}
+
+export function jobStatusLabel(status) {
+  return ({ open: "Open", soon: "Accepting soon", closed: "Closed" })[status] || "Closed";
+}
+
+export function jobStatusChipClass(status) {
+  return ({ open: "chip-green", soon: "chip-gold", closed: "chip-muted" })[status] || "chip-muted";
+}

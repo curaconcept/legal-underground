@@ -19,7 +19,7 @@
 <script type="module">
   import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, openJobDetailModal, downloadCsv, appsToCsvRows, $, $$ } from "../js/ui.js";
   import { store, onAuth, getUser } from "../js/store.js";
-  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES } from "../js/config.js";
+  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES, jobStatusLabel, jobStatusChipClass } from "../js/config.js";
 
   await bootPage("dash");
   renderFooter();
@@ -205,7 +205,7 @@
                       : `<b style="color:var(--blue)">${appCounts[j.id]} applicant${appCounts[j.id] === 1 ? "" : "s"}</b>`}
                   </div>
                 </div>
-                <span class="chip ${j.status === "open" ? "chip-green" : "chip-muted"}">${j.status === "open" ? "Open" : "Closed"}</span>
+                <span class="chip ${jobStatusChipClass(j.status)}">${esc(jobStatusLabel(j.status))}</span>
               </div>
               <div class="job-card-actions">
                 <button class="btn btn-primary btn-sm" data-act="view">View listing</button>
@@ -213,7 +213,12 @@
                   ? `<a class="btn btn-gold btn-sm" href="${esc(j.applyUrl)}" target="_blank" rel="noopener">Application link ↗</a>`
                   : `<button class="btn btn-ghost btn-sm" data-act="apps">View applicants</button>
                      ${appCounts[j.id] ? `<button class="btn btn-ghost btn-sm" data-act="export">Export CSV</button>` : ""}`}
-                <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "open" ? "Close listing" : "Reopen"}</button>
+                ${j.status === "open"
+                  ? `<button class="btn btn-gold btn-sm" data-act="soon">Accepting soon</button>`
+                  : j.status === "soon"
+                    ? `<button class="btn btn-gold btn-sm" data-act="openApps">Open applications</button>`
+                    : ""}
+                <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "closed" ? "Reopen" : "Close listing"}</button>
                 <button class="btn btn-danger btn-sm" data-act="del">Delete</button>
               </div>
               <div class="stack" data-appbox style="margin-top:14px"></div>
@@ -255,9 +260,20 @@
           downloadCsv(`${slug}-applicants.csv`, appsToCsvRows(apps));
           toast("CSV downloaded ✓");
         });
+        cardEl.querySelector("[data-act=soon]")?.addEventListener("click", async () => {
+          await store.updateJob(jobId, { status: "soon" });
+          toast("Marked as accepting applications soon.");
+          renderEmployer(user);
+        });
+        cardEl.querySelector("[data-act=openApps]")?.addEventListener("click", async () => {
+          await store.updateJob(jobId, { status: "open" });
+          toast("Listing is now accepting applications.");
+          renderEmployer(user);
+        });
         cardEl.querySelector("[data-act=toggle]").addEventListener("click", async () => {
-          await store.updateJob(jobId, { status: job.status === "open" ? "closed" : "open" });
-          toast(job.status === "open" ? "Listing closed." : "Listing reopened.");
+          const next = job.status === "closed" ? "open" : "closed";
+          await store.updateJob(jobId, { status: next });
+          toast(next === "closed" ? "Listing closed." : "Listing reopened.");
           renderEmployer(user);
         });
         cardEl.querySelector("[data-act=del]").addEventListener("click", async () => {
@@ -383,6 +399,10 @@
             </div></div>
           <div class="field"><label>Role description <span id="descReq" style="font-weight:400;color:var(--faint)">(required)</span></label>
             <textarea class="input" name="description" placeholder="What will the student actually do?"></textarea></div>
+          <label class="auth-legal" style="margin-top:4px">
+            <input type="checkbox" name="acceptingSoon">
+            <span><b>Accepting applications soon</b> — show on the board now, but don't allow students to apply yet.</span>
+          </label>
         </div>
 
         <div class="modal-foot">
@@ -426,6 +446,7 @@
       e.preventDefault();
       const f = new FormData(e.target);
       const applyUrl = (f.get("applyUrl") || "").trim();
+      const listingStatus = f.get("acceptingSoon") ? "soon" : "open";
 
       if (postType === "link") {
         if (!applyUrl) { toast("Paste your application link.", true); return; }
@@ -445,6 +466,7 @@
           description: f.get("description").trim() || "Apply directly on the organization's website.",
           requirements: [],
           ownerId: user.uid,
+          status: listingStatus,
         });
       } else {
         if (!picked.size) { toast("Pick at least one practice area.", true); return; }
@@ -459,10 +481,13 @@
           topics: [...picked], description: f.get("description").trim(),
           requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
           ownerId: user.uid,
+          status: listingStatus,
         });
       }
       closeModal();
-      toast(postType === "link" ? "Link listing published — students can apply on your site." : "Listing published — it's live on the board.");
+      toast(listingStatus === "soon"
+        ? "Listing published — accepting applications soon."
+        : postType === "link" ? "Link listing published — students can apply on your site." : "Listing published — it's live on the board.");
       renderEmployer(user);
     });
   }

@@ -2,7 +2,7 @@
 // LEGAL UNDERGROUND — Shared UI: nav, auth modal, toasts, helpers
 // ============================================================
 import { store, ready, onAuth, getUser, MODE } from "./store.js";
-import { CLUB_SITE_URL, sitePath, isHomePage, aboutSectionHref } from "./config.js";
+import { CLUB_SITE_URL, sitePath, isHomePage, aboutSectionHref, isJobAcceptingApplications, jobStatusLabel, jobStatusChipClass } from "./config.js";
 
 // ---------- tiny helpers ----------
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -77,24 +77,32 @@ export function appsToCsvRows(apps, { includeJob = false } = {}) {
  */
 export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
   const external = isExternalJob(job);
-  const dl = daysUntil(job.deadline);
+  const accepting = isJobAcceptingApplications(job);
+  const soon = job.status === "soon";
   const closed = job.status === "closed";
+  const dl = daysUntil(job.deadline);
   const foot = mode === "owner"
     ? (closed
       ? `<p class="modal-note">This listing is closed and hidden from the public board.</p>
          <a class="btn btn-ghost btn-block" href="${sitePath("/jobs/")}">Go to opportunities board</a>`
-      : external
-        ? `<a class="btn btn-primary btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Open application link ↗</a>
-           <a class="btn btn-ghost btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board</a>`
-        : `<a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board ↗</a>`)
+      : soon
+        ? `<p class="modal-note">Students see this on the board but cannot apply yet. Open applications when you're ready.</p>
+           <a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board</a>`
+        : external
+          ? `<a class="btn btn-primary btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Open application link ↗</a>
+             <a class="btn btn-ghost btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board</a>`
+          : `<a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board ↗</a>`)
     : mode === "preview"
       ? `<p class="modal-note">Preview only — students see this on the opportunities board.</p>`
       : closed
         ? `<p class="modal-note">This listing is closed and no longer accepting applications.</p>`
-        : external
-          ? `<p class="modal-note">You'll apply on the organization's own site — not through Legal Underground.</p>
-             <div class="modal-foot"><a class="btn btn-primary btn-lg btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Apply on organization site ↗</a></div>`
-          : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
+        : soon
+          ? `<p class="modal-note">This organization is not accepting applications yet. Check back soon.</p>
+             <div class="modal-foot"><button class="btn btn-gold btn-lg btn-block" type="button" disabled style="opacity:0.85;cursor:default">Accepting applications soon</button></div>`
+          : external
+            ? `<p class="modal-note">You'll apply on the organization's own site — not through Legal Underground.</p>
+               <div class="modal-foot"><a class="btn btn-primary btn-lg btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Apply on organization site ↗</a></div>`
+            : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
 
   const facts = [
     job.city ? `<div class="jd-fact"><div class="k">Location</div><div class="v">${esc(job.city)}</div></div>` : "",
@@ -107,6 +115,7 @@ export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
     <div class="jd-head">
       ${!external && job.comp ? `<span class="chip ${compChip(job.comp)}">${esc(job.comp)}</span>` : ""}
       ${external ? `<span class="chip chip-gold">Apply via link</span>` : ""}
+      ${soon ? `<span class="chip chip-gold">Accepting applications soon</span>` : ""}
       ${closed ? `<span class="chip chip-muted" style="margin-left:6px">Closed</span>` : ""}
       <h3 style="margin-top:12px">${esc(job.title)}</h3>
       <div class="jd-org">${esc(job.org)}</div>
@@ -118,7 +127,7 @@ export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
       <ul>${job.requirements.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>` : ""}
     ${foot}`, { large: true });
 
-  if (mode === "apply" && onApply && !external) {
+  if (mode === "apply" && onApply && accepting && !external) {
     $("#applyBtn", overlay)?.addEventListener("click", onApply);
   }
   return overlay;

@@ -161,6 +161,7 @@
     }
     box.innerHTML = list.map((j) => {
       const external = isExternalJob(j);
+      const soon = j.status === "soon";
       const dl = j.deadline ? daysUntil(j.deadline) : null;
       return `
       <article class="card card-hover job-card reveal visible" data-id="${esc(j.id)}">
@@ -169,9 +170,11 @@
             <h3>${esc(j.title)}</h3>
             <div class="org">${esc(j.org)}</div>
           </div>
-          ${external
-            ? `<span class="chip chip-gold">Apply via link ↗</span>`
-            : `<span class="chip ${compChip(j.comp)}">${esc(j.comp)}</span>`}
+          ${soon
+            ? `<span class="chip chip-gold">Accepting applications soon</span>`
+            : external
+              ? `<span class="chip chip-gold">Apply via link ↗</span>`
+              : `<span class="chip ${compChip(j.comp)}">${esc(j.comp)}</span>`}
         </div>
         <div class="job-meta">
           ${j.city ? `<span class="chip chip-muted">${PIN_SVG} ${esc(j.city)}</span>` : ""}
@@ -182,8 +185,9 @@
         <p class="job-desc">${esc(j.description)}</p>
         <div class="job-foot">
           <span>Posted ${timeAgo(j.postedAt)}${j.hours ? ` · ${esc(j.hours)}` : ""}</span>
-          <span style="color:${external ? "var(--gold-deep)" : dl !== null && dl <= 7 ? "var(--red)" : "var(--faint)"}">${
-            external ? "Apply on organization site"
+          <span style="color:${soon ? "var(--gold-deep)" : external ? "var(--gold-deep)" : dl !== null && dl <= 7 ? "var(--red)" : "var(--faint)"}">${
+            soon ? "Accepting applications soon"
+            : external ? "Apply on organization site"
             : dl !== null ? (dl > 0 ? `Apply by ${fmtDate(j.deadline)}` : "Deadline passed")
             : ""}</span>
         </div>
@@ -199,7 +203,7 @@
     if (!j) return;
     openJobDetailModal(j, {
       mode: "apply",
-      onApply: isExternalJob(j) ? undefined : () => {
+      onApply: (isExternalJob(j) || j.status === "soon") ? undefined : () => {
         const user = getUser();
         if (!user) { openAuthModal("signup", () => openApply(j)); return; }
         if (user.role === "employer") { toast("Employer accounts can't apply — switch to a student account.", true); return; }
@@ -209,6 +213,10 @@
   }
 
   async function openApply(j) {
+    if (j.status === "soon") {
+      toast("This organization is not accepting applications yet.", true);
+      return;
+    }
     const user = getUser();
     const profile = (await store.getProfile(user.uid)) || {};
     const overlay = openModal(`

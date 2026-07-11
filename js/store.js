@@ -191,7 +191,7 @@ const demoBackend = {
   },
 
   async listJobs() {
-    return lsGet(LS.jobs, []).filter((j) => j.status === "open")
+    return lsGet(LS.jobs, []).filter((j) => j.status === "open" || j.status === "soon")
       .sort((a, b) => b.postedAt - a.postedAt);
   },
   async listJobsByOwner(ownerId) {
@@ -201,7 +201,8 @@ const demoBackend = {
   async getJob(id) { return lsGet(LS.jobs, []).find((j) => j.id === id) || null; },
   async createJob(data) {
     const jobs = lsGet(LS.jobs, []);
-    const job = { ...data, id: uid(), postedAt: Date.now(), status: "open" };
+    const status = data.status === "soon" ? "soon" : "open";
+    const job = { ...data, id: uid(), postedAt: Date.now(), status };
     jobs.unshift(job); lsSet(LS.jobs, jobs);
     return job;
   },
@@ -320,7 +321,7 @@ const firebaseBackend = {
   async listJobs() {
     const { fsMod, db } = fb;
     const q = fsMod.query(fsMod.collection(db, "jobs"),
-      fsMod.where("status", "==", "open"), fsMod.orderBy("postedAt", "desc"));
+      fsMod.where("status", "in", ["open", "soon"]), fsMod.orderBy("postedAt", "desc"));
     return docsToList(await fsMod.getDocs(q));
   },
   async listJobsByOwner(ownerId) {
@@ -336,9 +337,10 @@ const firebaseBackend = {
   },
   async createJob(data) {
     const { fsMod, db } = fb;
+    const status = data.status === "soon" ? "soon" : "open";
     const ref = await fsMod.addDoc(fsMod.collection(db, "jobs"),
-      { ...data, postedAt: Date.now(), status: "open" });
-    return { id: ref.id, ...data };
+      { ...data, postedAt: Date.now(), status });
+    return { id: ref.id, ...data, status };
   },
   async updateJob(id, data) {
     const { fsMod, db } = fb;
