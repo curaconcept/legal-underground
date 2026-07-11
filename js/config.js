@@ -15,6 +15,16 @@ export const FIREBASE_ENABLED =
 /** Official UCLA club site (Google Sites) — events, LSAT tutoring, membership, board. */
 export const CLUB_SITE_URL = "https://sites.google.com/view/legal-underground-ucla/home";
 
+/** GitHub Pages project prefix (empty when serving locally from repo root). */
+export function sitePath(rel = "") {
+  if (/^https?:\/\//.test(rel) || rel.startsWith("mailto:")) return rel;
+  const gh = "/legal-underground";
+  const base = location.pathname.startsWith(gh) ? gh : "";
+  if (!rel || rel === "/") return `${base}/` || "/";
+  const path = rel.startsWith("/") ? rel : `/${rel}`;
+  return `${base}${path}`;
+}
+
 // Practice areas offered in filters and posting forms.
 export const TOPICS = [
   "Immigration", "Criminal Law", "Civil Rights", "Intellectual Property",

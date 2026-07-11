@@ -2,7 +2,7 @@
 // LEGAL UNDERGROUND — Shared UI: nav, auth modal, toasts, helpers
 // ============================================================
 import { store, ready, onAuth, getUser, MODE } from "./store.js";
-import { CLUB_SITE_URL } from "./config.js";
+import { CLUB_SITE_URL, sitePath } from "./config.js";
 
 // ---------- tiny helpers ----------
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -76,8 +76,8 @@ export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
   const foot = mode === "owner"
     ? (closed
       ? `<p class="modal-note">This listing is closed and hidden from the public board.</p>
-         <a class="btn btn-ghost btn-block" href="jobs.html">Go to opportunities board</a>`
-      : `<a class="btn btn-primary btn-block" href="jobs.html?job=${encodeURIComponent(job.id)}">View on public board ↗</a>`)
+         <a class="btn btn-ghost btn-block" href="${sitePath("/jobs/")}">Go to opportunities board</a>`
+      : `<a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board ↗</a>`)
     : mode === "preview"
       ? `<p class="modal-note">Preview only — students see this on the opportunities board.</p>`
       : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
@@ -160,12 +160,12 @@ export function renderNav(active = "") {
   nav.className = "nav";
   nav.innerHTML = `
     <div class="container nav-inner">
-      <a class="brand" href="index.html">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
+      <a class="brand" href="${sitePath("/")}">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
       <div class="nav-links" id="navLinks">
-        <a href="jobs.html" class="${active === "jobs" ? "active" : ""}">Opportunities</a>
-        <a href="index.html#about" class="${active === "about" ? "active" : ""}">About the club</a>
-        <a href="guide.html" class="${active === "guide" ? "active" : ""}">How it works</a>
-        <a href="dashboard.html" class="${active === "dash" ? "active" : ""}">Dashboard</a>
+        <a href="${sitePath("/jobs/")}" class="${active === "jobs" ? "active" : ""}">Opportunities</a>
+        <a href="${sitePath("/#about")}" class="${active === "about" ? "active" : ""}">About the club</a>
+        <a href="${sitePath("/guide/")}" class="${active === "guide" ? "active" : ""}">How it works</a>
+        <a href="${sitePath("/dashboard/")}" class="${active === "dash" ? "active" : ""}">Dashboard</a>
       </div>
       <div class="nav-auth" id="navAuth"></div>
       <button class="nav-burger" id="navBurger" aria-label="Menu">
@@ -190,7 +190,7 @@ export function renderNav(active = "") {
     if (user) {
       const initials = (user.name || user.email).split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
       box.innerHTML = `
-        <a class="nav-user" href="dashboard.html" title="Dashboard">
+        <a class="nav-user" href="${sitePath("/dashboard/")}" title="Dashboard">
           <span class="avatar">${esc(initials)}</span><span>${esc((user.name || "Account").split(" ")[0])}</span>
         </a>
         <button class="btn btn-ghost btn-sm" id="navSignOut">Sign out</button>`;
@@ -304,16 +304,16 @@ export function renderFooter() {
   f.innerHTML = `
     <div class="container footer-inner">
       <div>
-        <a class="brand" href="index.html">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
+        <a class="brand" href="${sitePath("/")}">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
         <p class="fine">A free student organization at UCLA connecting undergraduates with pro bono
         legal clinics, public-interest organizations, and law firms. Not affiliated with the
         UCLA School of Law. Listings are provided by partner organizations.</p>
       </div>
       <div class="footer-links">
-        <a href="jobs.html">Opportunities</a>
-        <a href="index.html#about">About the club</a>
-        <a href="guide.html">How it works</a>
-        <a href="dashboard.html">Dashboard</a>
+        <a href="${sitePath("/jobs/")}">Opportunities</a>
+        <a href="${sitePath("/#about")}">About the club</a>
+        <a href="${sitePath("/guide/")}">How it works</a>
+        <a href="${sitePath("/dashboard/")}">Dashboard</a>
         <a href="${CLUB_SITE_URL}" target="_blank" rel="noopener">Club website ↗</a>
         <a href="mailto:legalunderground@g.ucla.edu">Contact</a>
       </div>
