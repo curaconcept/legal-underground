@@ -541,7 +541,6 @@ textarea.input { resize: vertical; min-height: 110px; }
   .hstat { flex: 1; min-width: 0; }
   .hstat .num { font-size: 26px; }
   .hstat .lbl { font-size: 11px; letter-spacing: 0.08em; }
-  .float-chip { display: none; }
   .scroll-hint { display: none; }
 
   /* Grids & cards */
