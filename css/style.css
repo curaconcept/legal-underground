@@ -152,6 +152,7 @@ textarea.input { resize: vertical; min-height: 110px; }
 /* ---------- Section scaffolding ---------- */
 .page { padding-top: calc(var(--nav-h) + 48px); padding-bottom: 90px; min-height: 100vh; }
 .section { padding: 90px 0; }
+#about { scroll-margin-top: calc(var(--nav-h) + 20px); }
 .section-head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 10px;

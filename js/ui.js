@@ -2,7 +2,7 @@
 // LEGAL UNDERGROUND — Shared UI: nav, auth modal, toasts, helpers
 // ============================================================
 import { store, ready, onAuth, getUser, MODE } from "./store.js";
-import { CLUB_SITE_URL, sitePath } from "./config.js";
+import { CLUB_SITE_URL, sitePath, isHomePage, aboutSectionHref } from "./config.js";
 
 // ---------- tiny helpers ----------
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -163,7 +163,7 @@ export function renderNav(active = "") {
       <a class="brand" href="${sitePath("/")}">${LOGO_SVG}<span>Legal<b>Underground</b></span></a>
       <div class="nav-links" id="navLinks">
         <a href="${sitePath("/jobs/")}" class="${active === "jobs" ? "active" : ""}">Opportunities</a>
-        <a href="${sitePath("/#about")}" class="${active === "about" ? "active" : ""}">About the club</a>
+        <a href="${aboutSectionHref()}" id="navAbout">About the club</a>
         <a href="${sitePath("/guide/")}" class="${active === "guide" ? "active" : ""}">How it works</a>
         <a href="${sitePath("/dashboard/")}" class="${active === "dash" ? "active" : ""}">Dashboard</a>
       </div>
@@ -179,6 +179,15 @@ export function renderNav(active = "") {
   const closeNav = () => navLinks.classList.remove("open");
   navBurger.addEventListener("click", () => navLinks.classList.toggle("open"));
   $$("#navLinks a").forEach((a) => a.addEventListener("click", closeNav));
+  $("#navAbout")?.addEventListener("click", (e) => {
+    const section = document.getElementById("about");
+    if (isHomePage() && section) {
+      e.preventDefault();
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", aboutSectionHref());
+      closeNav();
+    }
+  });
   document.addEventListener("click", (e) => {
     if (!navLinks.classList.contains("open")) return;
     if (e.target.closest(".nav-inner")) return;
@@ -311,7 +320,7 @@ export function renderFooter() {
       </div>
       <div class="footer-links">
         <a href="${sitePath("/jobs/")}">Opportunities</a>
-        <a href="${sitePath("/#about")}">About the club</a>
+        <a href="${aboutSectionHref()}">About the club</a>
         <a href="${sitePath("/guide/")}">How it works</a>
         <a href="${sitePath("/dashboard/")}">Dashboard</a>
         <a href="${CLUB_SITE_URL}" target="_blank" rel="noopener">Club website ↗</a>

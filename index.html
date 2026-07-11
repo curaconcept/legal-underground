@@ -241,6 +241,12 @@
   renderFooter();
   initReveal();
 
+  if (location.hash === "#about") {
+    requestAnimationFrame(() => {
+      document.getElementById("about")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   document.getElementById("clubSiteBtn")?.setAttribute("href", CLUB_SITE_URL);
 
   // marquee: duplicate the topic list so the loop is seamless

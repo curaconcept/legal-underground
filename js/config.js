@@ -25,6 +25,15 @@ export function sitePath(rel = "") {
   return `${base}${path}`;
 }
 
+export function isHomePage() {
+  const p = location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+  return !p || p === "/legal-underground";
+}
+
+export function aboutSectionHref() {
+  return `${sitePath("/")}#about`;
+}
+
 // Practice areas offered in filters and posting forms.
 export const TOPICS = [
   "Immigration", "Criminal Law", "Civil Rights", "Intellectual Property",
