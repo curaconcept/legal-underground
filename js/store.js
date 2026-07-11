@@ -4,9 +4,71 @@
 //   • Firebase (Auth + Firestore) when js/config.js has real keys
 //   • localStorage demo mode otherwise, seeded with sample listings
 // ============================================================
-import { firebaseConfig, FIREBASE_ENABLED } from "./config.js";
+import { firebaseConfig, FIREBASE_ENABLED, formatHoursPerWeek } from "./config.js";
 
 export const MODE = FIREBASE_ENABLED ? "firebase" : "demo";
+
+const JOB_STATUSES = new Set(["open", "soon", "closed"]);
+
+function isExternalApplyUrl(applyUrl) {
+  return typeof applyUrl === "string" && applyUrl.trim().length > 0;
+}
+
+/** Strip protected fields and normalize listing payloads for create/update. */
+function sanitizeJobPayload(data, { creating = false } = {}) {
+  const p = { ...data };
+  delete p.id;
+  delete p.ownerId;
+  delete p.postedAt;
+  delete p.updatedAt;
+  if (p.status != null) {
+    if (!JOB_STATUSES.has(p.status)) p.status = "open";
+    if (creating && p.status === "closed") p.status = "open";
+  }
+  if (typeof p.title === "string") p.title = p.title.trim();
+  if (typeof p.org === "string") p.org = p.org.trim();
+  if (typeof p.city === "string") p.city = p.city.trim();
+  if (typeof p.description === "string") p.description = p.description.trim();
+  if (typeof p.hours === "string" && p.hours.trim()) {
+    const m = p.hours.trim().match(/^(\d+)(?:–(\d+))? hrs\/week$/);
+    if (!m) {
+      const parts = p.hours.match(/(\d+)/g);
+      if (parts?.length) p.hours = formatHoursPerWeek(parts[0], parts[1] || parts[0]);
+    }
+  }
+  if (Array.isArray(p.topics)) p.topics = p.topics.slice(0, 4);
+  if (Array.isArray(p.requirements)) {
+    p.requirements = p.requirements.map((r) => String(r).trim()).filter(Boolean);
+  }
+  return p;
+}
+
+function buildJobWritePayload(data, { creating = false, fsMod = null } = {}) {
+  const payload = sanitizeJobPayload(data, { creating });
+  if ("applyUrl" in data && !String(data.applyUrl ?? "").trim()) {
+    delete payload.applyUrl;
+    if (fsMod && !creating) payload.applyUrl = fsMod.deleteField();
+  } else if (typeof payload.applyUrl === "string") {
+    payload.applyUrl = payload.applyUrl.trim();
+  }
+  if ("deadline" in data && (data.deadline == null || data.deadline === "")) {
+    delete payload.deadline;
+    if (fsMod && !creating) payload.deadline = fsMod.deleteField();
+  }
+  if (!creating) payload.updatedAt = Date.now();
+  return payload;
+}
+
+async function assertJobAcceptingApplications(getJobFn, jobId) {
+  const job = await getJobFn(jobId);
+  if (!job) throw new Error("This opportunity no longer exists.");
+  if (job.status === "soon") throw new Error("This organization is not accepting applications yet.");
+  if (job.status === "closed") throw new Error("This opportunity is closed.");
+  if (isExternalApplyUrl(job.applyUrl)) {
+    throw new Error("Apply on the organization's website using the link on the listing.");
+  }
+  return job;
+}
 
 // ---------- shared auth pub-sub ----------
 const authListeners = [];
@@ -201,15 +263,26 @@ const demoBackend = {
   async getJob(id) { return lsGet(LS.jobs, []).find((j) => j.id === id) || null; },
   async createJob(data) {
     const jobs = lsGet(LS.jobs, []);
-    const status = data.status === "soon" ? "soon" : "open";
-    const job = { ...data, id: uid(), postedAt: Date.now(), status };
+    const user = getUser();
+    if (!user) throw new Error("Sign in to post listings.");
+    const payload = buildJobWritePayload({ ...data, ownerId: user.uid }, { creating: true });
+    const status = payload.status === "soon" ? "soon" : "open";
+    const job = { ...payload, id: uid(), postedAt: Date.now(), status, ownerId: user.uid };
     jobs.unshift(job); lsSet(LS.jobs, jobs);
     return job;
   },
   async updateJob(id, data) {
+    const user = getUser();
+    if (!user) throw new Error("Sign in to manage listings.");
     const jobs = lsGet(LS.jobs, []);
     const i = jobs.findIndex((j) => j.id === id);
-    if (i >= 0) { jobs[i] = { ...jobs[i], ...data }; lsSet(LS.jobs, jobs); }
+    if (i < 0) throw new Error("Listing not found.");
+    if (jobs[i].ownerId !== user.uid) throw new Error("Cannot update this listing.");
+    const payload = buildJobWritePayload(data);
+    if ("applyUrl" in data && !String(data.applyUrl ?? "").trim()) delete jobs[i].applyUrl;
+    if ("deadline" in data && (data.deadline == null || data.deadline === "")) delete jobs[i].deadline;
+    jobs[i] = { ...jobs[i], ...payload };
+    lsSet(LS.jobs, jobs);
   },
   async deleteJob(id) {
     const apps = lsGet(LS.apps, []).filter((a) => a.jobId === id);
@@ -223,6 +296,7 @@ const demoBackend = {
   },
 
   async apply(data) {
+    await assertJobAcceptingApplications((id) => this.getJob(id), data.jobId);
     const apps = lsGet(LS.apps, []);
     if (apps.some((a) => a.jobId === data.jobId && a.applicantId === data.applicantId))
       throw new Error("You already applied to this opportunity.");
@@ -337,14 +411,24 @@ const firebaseBackend = {
   },
   async createJob(data) {
     const { fsMod, db } = fb;
-    const status = data.status === "soon" ? "soon" : "open";
+    const user = getUser();
+    if (!user) throw new Error("Sign in to post listings.");
+    const payload = buildJobWritePayload({ ...data, ownerId: user.uid }, { creating: true, fsMod });
+    const status = payload.status === "soon" ? "soon" : "open";
     const ref = await fsMod.addDoc(fsMod.collection(db, "jobs"),
-      { ...data, postedAt: Date.now(), status });
-    return { id: ref.id, ...data, status };
+      { ...payload, ownerId: user.uid, postedAt: Date.now(), status });
+    return { id: ref.id, ...payload, status };
   },
   async updateJob(id, data) {
     const { fsMod, db } = fb;
-    await fsMod.updateDoc(fsMod.doc(db, "jobs", id), data);
+    const user = getUser();
+    if (!user) throw new Error("Sign in to manage listings.");
+    const ref = fsMod.doc(db, "jobs", id);
+    const snap = await fsMod.getDoc(ref);
+    if (!snap.exists() || snap.data().ownerId !== user.uid)
+      throw new Error("Cannot update this listing.");
+    const payload = buildJobWritePayload(data, { fsMod });
+    await fsMod.updateDoc(ref, payload);
   },
   async deleteJob(id) {
     const { fsMod, db } = fb;
@@ -375,6 +459,10 @@ const firebaseBackend = {
 
   async apply(data) {
     const { fsMod, db } = fb;
+    const job = await assertJobAcceptingApplications((id) => this.getJob(id), data.jobId);
+    if (job.ownerId !== data.jobOwnerId) {
+      throw new Error("Application could not be submitted. Please refresh and try again.");
+    }
     const dup = fsMod.query(fsMod.collection(db, "applications"),
       fsMod.where("jobId", "==", data.jobId), fsMod.where("applicantId", "==", data.applicantId));
     if (!(await fsMod.getDocs(dup)).empty)

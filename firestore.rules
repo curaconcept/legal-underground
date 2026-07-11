@@ -5,6 +5,18 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
 
+    function jobDoc(jobId) {
+      return get(/databases/$(database)/documents/jobs/$(jobId));
+    }
+
+    function jobIsOpen(jobId) {
+      return jobDoc(jobId).data.status == 'open';
+    }
+
+    function jobOwnerMatches(jobId, ownerId) {
+      return jobDoc(jobId).data.ownerId == ownerId;
+    }
+
     // Account records (role + display name), created at signup.
     match /users/{uid} {
       allow read: if isOwner(uid);
@@ -22,8 +34,15 @@ service cloud.firestore {
     // Job listings: public to browse; only the posting org can modify.
     match /jobs/{jobId} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.status in ['open', 'soon'];
+      allow update: if signedIn() &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.postedAt == resource.data.postedAt &&
+        request.resource.data.status in ['open', 'soon', 'closed'];
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     // Applications: visible to the applicant and the job's owner.
@@ -37,7 +56,9 @@ service cloud.firestore {
         request.resource.data.applicantId == request.auth.uid &&
         request.resource.data.jobOwnerId is string &&
         request.resource.data.jobOwnerId.size() > 0 &&
-        request.resource.data.jobId is string;
+        request.resource.data.jobId is string &&
+        jobIsOpen(request.resource.data.jobId) &&
+        jobOwnerMatches(request.resource.data.jobId, request.resource.data.jobOwnerId);
       allow update: if signedIn() &&
         resource.data.jobOwnerId == request.auth.uid &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusUpdatedAt']);
