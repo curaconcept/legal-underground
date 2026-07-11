@@ -451,6 +451,34 @@ textarea.input { resize: vertical; min-height: 110px; }
 .faq .faq-body { padding: 0 22px 20px; color: var(--brown); font-size: 14.5px; }
 
 /* ============================================================
+   LEGAL PAGES (Privacy, Terms)
+   ============================================================ */
+.legal-doc { max-width: 720px; margin: 0 auto; }
+.legal-doc .legal-meta { color: var(--faint); font-size: 14px; margin: 10px 0 28px; line-height: 1.5; }
+.legal-doc .legal-callout {
+  background: var(--cream); border-left: 3px solid var(--gold); padding: 14px 18px;
+  margin: 24px 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14.5px; color: var(--brown);
+}
+.legal-doc h2 {
+  font-family: "Playfair Display", Georgia, serif; font-size: 21px; font-weight: 600;
+  margin: 36px 0 10px; color: var(--ink);
+}
+.legal-doc h3 { font-size: 16px; font-weight: 600; margin: 22px 0 8px; color: var(--ink); }
+.legal-doc p, .legal-doc li { color: var(--brown); font-size: 15px; line-height: 1.68; margin-bottom: 12px; }
+.legal-doc ul, .legal-doc ol { padding-left: 1.35em; margin: 8px 0 16px; }
+.legal-doc li { margin-bottom: 6px; }
+.legal-doc a { color: var(--blue-text); text-decoration: underline; text-underline-offset: 2px; }
+.legal-doc a:hover { color: var(--blue); }
+.legal-toc { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 18px 22px; margin-bottom: 32px; }
+.legal-toc h2 { margin-top: 0; font-size: 17px; }
+.legal-toc ol { margin-bottom: 0; }
+.legal-toc a { text-decoration: none; font-weight: 500; }
+.legal-toc a:hover { text-decoration: underline; }
+.auth-legal { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 16px; font-size: 13px; color: var(--brown); line-height: 1.45; }
+.auth-legal input { margin-top: 3px; flex-shrink: 0; accent-color: var(--blue); }
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1020px) {

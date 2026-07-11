@@ -248,6 +248,11 @@ export function openAuthModal(mode = "signin", afterAuth = null) {
         <input class="input" name="email" type="email" required placeholder="you@ucla.edu" autocomplete="email"></div>
       <div class="field"><label>Password</label>
         <input class="input" name="password" type="password" required minlength="6" placeholder="••••••••" autocomplete="current-password"></div>
+      <label class="auth-legal" id="authLegal" style="display:${mode === "signup" ? "flex" : "none"}">
+        <input type="checkbox" name="agreeTerms" ${mode === "signup" ? "required" : ""}>
+        <span>I agree to the <a href="${sitePath("/terms/")}" target="_blank" rel="noopener">Terms of Service</a>
+        and <a href="${sitePath("/privacy/")}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+      </label>
       <button class="btn btn-primary btn-block btn-lg" type="submit" id="authSubmit">
         ${mode === "signin" ? "Sign in" : "Create free account"}</button>
       ${MODE === "demo" ? `<p style="margin-top:14px;font-size:12px;color:var(--faint);text-align:center">
@@ -258,6 +263,9 @@ export function openAuthModal(mode = "signin", afterAuth = null) {
     mode = m;
     $$(".tabs button", overlay).forEach((b) => b.classList.toggle("active", b.dataset.t === m));
     $("#signupExtras", overlay).style.display = m === "signup" ? "block" : "none";
+    $("#authLegal", overlay).style.display = m === "signup" ? "flex" : "none";
+    const agree = $("[name=agreeTerms]", overlay);
+    if (agree) agree.required = m === "signup";
     $("#authSubmit", overlay).textContent = m === "signin" ? "Sign in" : "Create free account";
     $("[name=name]", overlay).required = m === "signup";
   };
@@ -324,6 +332,8 @@ export function renderFooter() {
         <a href="${sitePath("/guide/")}">How it works</a>
         <a href="${sitePath("/dashboard/")}">Dashboard</a>
         <a href="${CLUB_SITE_URL}" target="_blank" rel="noopener">Club website ↗</a>
+        <a href="${sitePath("/privacy/")}">Privacy</a>
+        <a href="${sitePath("/terms/")}">Terms</a>
         <a href="mailto:legalunderground@g.ucla.edu">Contact</a>
       </div>
     </div>`;
