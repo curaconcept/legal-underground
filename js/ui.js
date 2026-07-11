@@ -34,6 +34,11 @@ export function compChip(c) {
   return c === "Paid" ? "chip-green" : c === "Stipend" || c === "School credit" ? "chip-gold" : "chip-muted";
 }
 
+/** Listing uses an external application URL instead of in-platform apply. */
+export function isExternalJob(job) {
+  return typeof job?.applyUrl === "string" && job.applyUrl.trim().length > 0;
+}
+
 /** Trigger a browser download of CSV text. */
 export function downloadCsv(filename, rows) {
   const escCell = (v) => {
@@ -71,37 +76,49 @@ export function appsToCsvRows(apps, { includeJob = false } = {}) {
  * mode: "apply" (default), "preview" (read-only), "owner" (employer's own listing)
  */
 export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
+  const external = isExternalJob(job);
   const dl = daysUntil(job.deadline);
   const closed = job.status === "closed";
   const foot = mode === "owner"
     ? (closed
       ? `<p class="modal-note">This listing is closed and hidden from the public board.</p>
          <a class="btn btn-ghost btn-block" href="${sitePath("/jobs/")}">Go to opportunities board</a>`
-      : `<a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board ↗</a>`)
+      : external
+        ? `<a class="btn btn-primary btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Open application link ↗</a>
+           <a class="btn btn-ghost btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board</a>`
+        : `<a class="btn btn-primary btn-block" href="${sitePath(`/jobs/?job=${encodeURIComponent(job.id)}`)}">View on public board ↗</a>`)
     : mode === "preview"
       ? `<p class="modal-note">Preview only — students see this on the opportunities board.</p>`
-      : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
+      : closed
+        ? `<p class="modal-note">This listing is closed and no longer accepting applications.</p>`
+        : external
+          ? `<p class="modal-note">You'll apply on the organization's own site — not through Legal Underground.</p>
+             <div class="modal-foot"><a class="btn btn-primary btn-lg btn-block" href="${esc(job.applyUrl)}" target="_blank" rel="noopener">Apply on organization site ↗</a></div>`
+          : `<div class="modal-foot"><button class="btn btn-primary btn-lg btn-block" id="applyBtn">Apply now — it's free</button></div>`;
+
+  const facts = [
+    job.city ? `<div class="jd-fact"><div class="k">Location</div><div class="v">${esc(job.city)}</div></div>` : "",
+    job.workMode ? `<div class="jd-fact"><div class="k">Work mode</div><div class="v">${esc(job.workMode)}</div></div>` : "",
+    job.hours ? `<div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(job.hours)}</div></div>` : "",
+    job.deadline ? `<div class="jd-fact"><div class="k">Deadline</div><div class="v" style="color:${dl <= 7 ? "var(--red)" : "inherit"}">${fmtDate(job.deadline)}</div></div>` : "",
+  ].filter(Boolean).join("");
 
   const overlay = openModal(`
     <div class="jd-head">
-      <span class="chip ${compChip(job.comp)}">${esc(job.comp)}</span>
+      ${!external && job.comp ? `<span class="chip ${compChip(job.comp)}">${esc(job.comp)}</span>` : ""}
+      ${external ? `<span class="chip chip-gold">Apply via link</span>` : ""}
       ${closed ? `<span class="chip chip-muted" style="margin-left:6px">Closed</span>` : ""}
       <h3 style="margin-top:12px">${esc(job.title)}</h3>
       <div class="jd-org">${esc(job.org)}</div>
     </div>
-    <div class="jd-facts">
-      <div class="jd-fact"><div class="k">Location</div><div class="v">${esc(job.city)}</div></div>
-      <div class="jd-fact"><div class="k">Work mode</div><div class="v">${esc(job.workMode)}</div></div>
-      <div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(job.hours)}</div></div>
-      <div class="jd-fact"><div class="k">Deadline</div><div class="v" style="color:${dl <= 7 ? "var(--red)" : "inherit"}">${fmtDate(job.deadline)}</div></div>
-    </div>
-    <div class="job-meta">${(job.topics || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>
-    <div class="jd-section"><h4>About the role</h4><p>${esc(job.description)}</p></div>
-    <div class="jd-section"><h4>What they're looking for</h4>
-      <ul>${(job.requirements || []).map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>
+    ${facts ? `<div class="jd-facts">${facts}</div>` : ""}
+    ${(job.topics || []).length ? `<div class="job-meta">${job.topics.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>` : ""}
+    ${job.description ? `<div class="jd-section"><h4>About the role</h4><p>${esc(job.description)}</p></div>` : ""}
+    ${(job.requirements || []).length ? `<div class="jd-section"><h4>What they're looking for</h4>
+      <ul>${job.requirements.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>` : ""}
     ${foot}`, { large: true });
 
-  if (mode === "apply" && onApply) {
+  if (mode === "apply" && onApply && !external) {
     $("#applyBtn", overlay)?.addEventListener("click", onApply);
   }
   return overlay;

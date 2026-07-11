@@ -18,7 +18,7 @@
       <div>
         <div class="eyebrow" style="margin-bottom:8px">The board</div>
         <h1>Open <span class="grad-text">opportunities</span></h1>
-        <p class="sub">Pro bono internships, clerkships, research roles, and volunteer positions from our partner network.</p>
+        <p class="sub">Pro bono internships, clerkships, research roles, and volunteer positions from our partner network. Some listings link to an organization's own application page.</p>
       </div>
     </div>
 
@@ -70,7 +70,7 @@
 </main>
 
 <script type="module">
-  import { bootPage, renderFooter, initReveal, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, daysUntil, compChip, openJobDetailModal, $, $$ } from "../js/ui.js";
+  import { bootPage, renderFooter, initReveal, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, daysUntil, compChip, openJobDetailModal, isExternalJob, $, $$ } from "../js/ui.js";
   import { store, getUser } from "../js/store.js";
   import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES } from "../js/config.js";
 
@@ -160,7 +160,8 @@
       return;
     }
     box.innerHTML = list.map((j) => {
-      const dl = daysUntil(j.deadline);
+      const external = isExternalJob(j);
+      const dl = j.deadline ? daysUntil(j.deadline) : null;
       return `
       <article class="card card-hover job-card reveal visible" data-id="${esc(j.id)}">
         <div class="job-card-top">
@@ -168,18 +169,23 @@
             <h3>${esc(j.title)}</h3>
             <div class="org">${esc(j.org)}</div>
           </div>
-          <span class="chip ${compChip(j.comp)}">${esc(j.comp)}</span>
+          ${external
+            ? `<span class="chip chip-gold">Apply via link ↗</span>`
+            : `<span class="chip ${compChip(j.comp)}">${esc(j.comp)}</span>`}
         </div>
         <div class="job-meta">
-          <span class="chip chip-muted">${PIN_SVG} ${esc(j.city)}</span>
-          <span class="chip chip-muted">${esc(j.workMode)}</span>
-          <span class="chip chip-muted">${esc(j.type)}</span>
+          ${j.city ? `<span class="chip chip-muted">${PIN_SVG} ${esc(j.city)}</span>` : ""}
+          ${j.workMode ? `<span class="chip chip-muted">${esc(j.workMode)}</span>` : ""}
+          ${j.type ? `<span class="chip chip-muted">${esc(j.type)}</span>` : ""}
           ${j.topics.slice(0, 3).map((t) => `<span class="chip">${esc(t)}</span>`).join("")}
         </div>
         <p class="job-desc">${esc(j.description)}</p>
         <div class="job-foot">
-          <span>Posted ${timeAgo(j.postedAt)} · ${esc(j.hours)}</span>
-          <span style="color:${dl <= 7 ? "var(--red)" : "var(--faint)"}">${dl > 0 ? `Apply by ${fmtDate(j.deadline)}` : "Deadline passed"}</span>
+          <span>Posted ${timeAgo(j.postedAt)}${j.hours ? ` · ${esc(j.hours)}` : ""}</span>
+          <span style="color:${external ? "var(--gold-deep)" : dl !== null && dl <= 7 ? "var(--red)" : "var(--faint)"}">${
+            external ? "Apply on organization site"
+            : dl !== null ? (dl > 0 ? `Apply by ${fmtDate(j.deadline)}` : "Deadline passed")
+            : ""}</span>
         </div>
       </article>`;
     }).join("");
@@ -193,7 +199,7 @@
     if (!j) return;
     openJobDetailModal(j, {
       mode: "apply",
-      onApply: () => {
+      onApply: isExternalJob(j) ? undefined : () => {
         const user = getUser();
         if (!user) { openAuthModal("signup", () => openApply(j)); return; }
         if (user.role === "employer") { toast("Employer accounts can't apply — switch to a student account.", true); return; }

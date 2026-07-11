@@ -147,7 +147,7 @@
         <div>
           <div class="eyebrow" style="margin-bottom:8px">Organization dashboard</div>
           <h1>${esc(profile.orgName || user.name || "Your organization")}</h1>
-          <p class="sub">Post roles, review applicants, and move candidates through your pipeline. Our team sends organizations a weekly summary of new applications by email.</p>
+          <p class="sub">Post full listings with in-platform applications, or share a link to your own application page. Review applicants here when students apply through Legal Underground.</p>
         </div>
         <button class="btn btn-gold" id="newJobBtn">+ Post an opportunity</button>
       </div>
@@ -179,16 +179,20 @@
                 <div>
                   <h3 style="font-size:17px">${esc(j.title)}</h3>
                   <div class="s" style="color:var(--faint);font-size:12.5px;margin-top:3px">
-                    Posted ${timeAgo(j.postedAt)} · deadline ${fmtDate(j.deadline)} ·
-                    <b style="color:var(--blue)">${appCounts[j.id]} applicant${appCounts[j.id] === 1 ? "" : "s"}</b>
+                    Posted ${timeAgo(j.postedAt)}${j.deadline ? ` · deadline ${fmtDate(j.deadline)}` : ""} ·
+                    ${j.applyUrl
+                      ? `<b style="color:var(--gold-deep)">External application link</b>`
+                      : `<b style="color:var(--blue)">${appCounts[j.id]} applicant${appCounts[j.id] === 1 ? "" : "s"}</b>`}
                   </div>
                 </div>
                 <span class="chip ${j.status === "open" ? "chip-green" : "chip-muted"}">${j.status === "open" ? "Open" : "Closed"}</span>
               </div>
               <div class="job-card-actions">
                 <button class="btn btn-primary btn-sm" data-act="view">View listing</button>
-                <button class="btn btn-ghost btn-sm" data-act="apps">View applicants</button>
-                ${appCounts[j.id] ? `<button class="btn btn-ghost btn-sm" data-act="export">Export CSV</button>` : ""}
+                ${j.applyUrl
+                  ? `<a class="btn btn-gold btn-sm" href="${esc(j.applyUrl)}" target="_blank" rel="noopener">Application link ↗</a>`
+                  : `<button class="btn btn-ghost btn-sm" data-act="apps">View applicants</button>
+                     ${appCounts[j.id] ? `<button class="btn btn-ghost btn-sm" data-act="export">Export CSV</button>` : ""}`}
                 <button class="btn btn-ghost btn-sm" data-act="toggle">${j.status === "open" ? "Close listing" : "Reopen"}</button>
                 <button class="btn btn-danger btn-sm" data-act="del">Delete</button>
               </div>
@@ -224,7 +228,7 @@
         const jobId = cardEl.dataset.job;
         const job = myJobs.find((j) => j.id === jobId);
         cardEl.querySelector("[data-act=view]").addEventListener("click", () => openJobDetailModal(job, { mode: "owner" }));
-        cardEl.querySelector("[data-act=apps]").addEventListener("click", () => toggleApps(cardEl, jobId));
+        cardEl.querySelector("[data-act=apps]")?.addEventListener("click", () => toggleApps(cardEl, jobId));
         cardEl.querySelector("[data-act=export]")?.addEventListener("click", () => {
           const apps = employerAppsByJob[jobId] || [];
           const slug = job.title.replace(/[^\w]+/g, "-").slice(0, 40);
@@ -295,46 +299,94 @@
   // ----- post-a-job form -----
   function openJobForm(user, profile) {
     const inWeeks = (w) => new Date(Date.now() + w * 7 * 86400000).toISOString().slice(0, 10);
+    let postType = "full";
     const overlay = openModal(`
       <h3>Post an opportunity</h3>
-      <p class="sub">Free to post. Listings appear on the board immediately.</p>
+      <p class="sub">Free to post. Choose a full listing or just share a link to your own application.</p>
+      <div class="tabs" id="postTypeTabs">
+        <button type="button" data-post="full" class="active">Full listing</button>
+        <button type="button" data-post="link">Application link</button>
+      </div>
+      <p class="modal-note" id="postTypeHint">Students apply through Legal Underground — you review applicants on your dashboard.</p>
       <form id="jobForm">
         <div class="field"><label>Role title</label>
           <input class="input" name="title" required placeholder="Immigration Law Intern"></div>
         <div class="field"><label>Organization</label>
           <input class="input" name="org" required value="${esc(profile.orgName || "")}" placeholder="Your organization"></div>
-        <div class="field-row">
-          <div class="field"><label>Location</label>
-            <input class="input" name="city" required placeholder="Downtown LA / Remote (US)"></div>
-          <div class="field"><label>Work mode</label>
-            <select class="input" name="workMode">${WORK_MODES.map((m) => `<option>${m}</option>`).join("")}</select></div>
+
+        <div id="linkFields" style="display:none">
+          <div class="field"><label>Application link</label>
+            <input class="input" name="applyUrl" type="url" placeholder="https://yourorg.org/careers/intern-application"></div>
+          <p class="modal-note" style="margin-top:-4px">Students click through to apply on your site. Add optional details below so the board still shows context.</p>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Role type</label>
-            <select class="input" name="type">${JOB_TYPES.map((t) => `<option>${t}</option>`).join("")}</select></div>
-          <div class="field"><label>Compensation</label>
-            <select class="input" name="comp">${COMP_TYPES.map((c) => `<option>${c}</option>`).join("")}</select></div>
+
+        <div id="fullFields">
+          <div class="field-row">
+            <div class="field"><label>Location</label>
+              <input class="input" name="city" placeholder="Downtown LA / Remote (US)"></div>
+            <div class="field"><label>Work mode</label>
+              <select class="input" name="workMode">${WORK_MODES.map((m) => `<option>${m}</option>`).join("")}</select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Role type</label>
+              <select class="input" name="type">${JOB_TYPES.map((t) => `<option>${t}</option>`).join("")}</select></div>
+            <div class="field"><label>Compensation</label>
+              <select class="input" name="comp">${COMP_TYPES.map((c) => `<option>${c}</option>`).join("")}</select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Time commitment</label>
+              <input class="input" name="hours" placeholder="8–12 hrs/week"></div>
+            <div class="field"><label>Application deadline</label>
+              <input class="input" name="deadline" type="date" value="${inWeeks(4)}"></div>
+          </div>
+          <div class="field"><label>Requirements (one per line)</label>
+            <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Time commitment</label>
-            <input class="input" name="hours" required placeholder="8–12 hrs/week"></div>
-          <div class="field"><label>Application deadline</label>
-            <input class="input" name="deadline" type="date" required value="${inWeeks(4)}"></div>
+
+        <div id="sharedOptional">
+          <div class="field-row" id="linkOptionalRow" style="display:none">
+            <div class="field"><label>Location <span style="font-weight:400;color:var(--faint)">(optional)</span></label>
+              <input class="input" name="linkCity" placeholder="Downtown LA / Remote (US)"></div>
+            <div class="field"><label>Application deadline <span style="font-weight:400;color:var(--faint)">(optional)</span></label>
+              <input class="input" name="linkDeadline" type="date" value="${inWeeks(4)}"></div>
+          </div>
+          <div class="field"><label>Practice areas <span id="topicsReq" style="font-weight:400;color:var(--faint)">(pick up to 4)</span></label>
+            <div class="topic-cloud" id="jobTopics" style="margin-top:4px">
+              ${TOPICS.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}
+            </div></div>
+          <div class="field"><label>Role description <span id="descReq" style="font-weight:400;color:var(--faint)">(required)</span></label>
+            <textarea class="input" name="description" placeholder="What will the student actually do?"></textarea></div>
         </div>
-        <div class="field"><label>Practice areas (pick up to 4)</label>
-          <div class="topic-cloud" id="jobTopics" style="margin-top:4px">
-            ${TOPICS.map((t) => `<span class="chip" data-t="${esc(t)}">${esc(t)}</span>`).join("")}
-          </div></div>
-        <div class="field"><label>Role description</label>
-          <textarea class="input" name="description" required placeholder="What will the student actually do?"></textarea></div>
-        <div class="field"><label>Requirements (one per line)</label>
-          <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
+
         <div class="modal-foot">
-          <button class="btn btn-gold btn-lg btn-block" type="submit">Publish listing</button>
+          <button class="btn btn-gold btn-lg btn-block" type="submit" id="jobSubmitBtn">Publish listing</button>
         </div>
       </form>`, { large: true });
 
     const picked = new Set();
+    const setPostType = (type) => {
+      postType = type;
+      $$("#postTypeTabs button", overlay).forEach((b) => b.classList.toggle("active", b.dataset.post === type));
+      $("#linkFields", overlay).style.display = type === "link" ? "block" : "none";
+      $("#fullFields", overlay).style.display = type === "full" ? "block" : "none";
+      $("#linkOptionalRow", overlay).style.display = type === "link" ? "grid" : "none";
+      $("#postTypeHint", overlay).textContent = type === "link"
+        ? "Fastest option — paste your application URL and students go straight to your form."
+        : "Students apply through Legal Underground — you review applicants on your dashboard.";
+      $("#topicsReq", overlay).textContent = type === "link" ? "(optional, up to 4)" : "(pick up to 4)";
+      $("#descReq", overlay).textContent = type === "link" ? "(optional)" : "(required)";
+      const desc = $("[name=description]", overlay);
+      desc.required = type === "full";
+      const city = $("[name=city]", overlay);
+      const hours = $("[name=hours]", overlay);
+      const deadline = $("[name=deadline]", overlay);
+      city.required = hours.required = deadline.required = type === "full";
+      $("#jobSubmitBtn", overlay).textContent = type === "link" ? "Publish link listing" : "Publish listing";
+    };
+    $$("#postTypeTabs button", overlay).forEach((b) =>
+      b.addEventListener("click", () => setPostType(b.dataset.post)));
+    setPostType("full");
+
     $$("#jobTopics .chip", overlay).forEach((chip) =>
       chip.addEventListener("click", () => {
         const t = chip.dataset.t;
@@ -345,18 +397,45 @@
 
     $("#jobForm", overlay).addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!picked.size) { toast("Pick at least one practice area.", true); return; }
       const f = new FormData(e.target);
-      await store.createJob({
-        title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
-        workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
-        hours: f.get("hours").trim(), deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
-        topics: [...picked], description: f.get("description").trim(),
-        requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
-        ownerId: user.uid,
-      });
+      const applyUrl = (f.get("applyUrl") || "").trim();
+
+      if (postType === "link") {
+        if (!applyUrl) { toast("Paste your application link.", true); return; }
+        try { new URL(applyUrl); } catch { toast("Enter a valid application URL (https://…).", true); return; }
+        const linkDeadline = f.get("linkDeadline");
+        await store.createJob({
+          title: f.get("title").trim(),
+          org: f.get("org").trim(),
+          applyUrl,
+          city: f.get("linkCity").trim(),
+          workMode: "",
+          type: "Internship",
+          comp: "Unpaid",
+          hours: "",
+          deadline: linkDeadline ? new Date(linkDeadline + "T23:59:59").getTime() : null,
+          topics: [...picked],
+          description: f.get("description").trim() || "Apply directly on the organization's website.",
+          requirements: [],
+          ownerId: user.uid,
+        });
+      } else {
+        if (!picked.size) { toast("Pick at least one practice area.", true); return; }
+        if (!f.get("city").trim() || !f.get("hours").trim() || !f.get("deadline")) {
+          toast("Fill in location, time commitment, and deadline.", true);
+          return;
+        }
+        await store.createJob({
+          title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
+          workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
+          hours: f.get("hours").trim(), deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
+          topics: [...picked], description: f.get("description").trim(),
+          requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
+          ownerId: user.uid,
+        });
+      }
       closeModal();
-      toast("Listing published — it's live on the board.");
+      toast(postType === "link" ? "Link listing published — students can apply on your site." : "Listing published — it's live on the board.");
       renderEmployer(user);
     });
   }
