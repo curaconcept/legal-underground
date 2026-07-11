@@ -72,7 +72,7 @@
 <script type="module">
   import { bootPage, renderFooter, initReveal, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, daysUntil, compChip, openJobDetailModal, isExternalJob, $, $$ } from "../js/ui.js";
   import { store, getUser } from "../js/store.js";
-  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES } from "../js/config.js";
+  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, displayHours } from "../js/config.js";
 
   await bootPage("jobs");
   renderFooter();
@@ -184,7 +184,7 @@
         </div>
         <p class="job-desc">${esc(j.description)}</p>
         <div class="job-foot">
-          <span>Posted ${timeAgo(j.postedAt)}${j.hours ? ` · ${esc(j.hours)}` : ""}</span>
+          <span>Posted ${timeAgo(j.postedAt)}${j.hours ? ` · ${esc(displayHours(j.hours))}` : ""}</span>
           <span style="color:${soon ? "var(--gold-deep)" : external ? "var(--gold-deep)" : dl !== null && dl <= 7 ? "var(--red)" : "var(--faint)"}">${
             soon ? "Accepting applications soon"
             : external ? "Apply on organization site"

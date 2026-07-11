@@ -62,3 +62,28 @@ export function jobStatusLabel(status) {
 export function jobStatusChipClass(status) {
   return ({ open: "chip-green", soon: "chip-gold", closed: "chip-muted" })[status] || "chip-muted";
 }
+
+/** Build a standard weekly hours string, e.g. "10 hrs/week" or "8–12 hrs/week". */
+export function formatHoursPerWeek(min, max) {
+  const lo = Math.round(Number(min));
+  const hiRaw = max != null && max !== "" ? Number(max) : lo;
+  const hi = Math.round(hiRaw);
+  if (!Number.isFinite(lo) || lo < 1) return "";
+  if (!Number.isFinite(hi) || hi < lo) return `${lo} hrs/week`;
+  if (lo === hi) return `${lo} hrs/week`;
+  return `${lo}–${hi} hrs/week`;
+}
+
+/** Normalize stored hours for display (handles legacy free-text values). */
+export function displayHours(hours) {
+  if (!hours) return "";
+  const s = String(hours).trim();
+  if (/^\d+–\d+ hrs\/week$/.test(s) || /^\d+ hrs\/week$/.test(s)) return s;
+  const range = s.match(/(\d+)\s*[–-]\s*(\d+)/);
+  if (range) return formatHoursPerWeek(range[1], range[2]);
+  const plus = s.match(/(\d+)\+/);
+  if (plus) return formatHoursPerWeek(plus[1], plus[1]);
+  const single = s.match(/(\d+)/);
+  if (single) return formatHoursPerWeek(single[1], single[1]);
+  return s;
+}

@@ -2,7 +2,7 @@
 // LEGAL UNDERGROUND — Shared UI: nav, auth modal, toasts, helpers
 // ============================================================
 import { store, ready, onAuth, getUser, MODE } from "./store.js";
-import { CLUB_SITE_URL, sitePath, isHomePage, aboutSectionHref, isJobAcceptingApplications, jobStatusLabel, jobStatusChipClass } from "./config.js";
+import { CLUB_SITE_URL, sitePath, isHomePage, aboutSectionHref, isJobAcceptingApplications, jobStatusLabel, jobStatusChipClass, displayHours } from "./config.js";
 
 // ---------- tiny helpers ----------
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -107,7 +107,7 @@ export function openJobDetailModal(job, { mode = "apply", onApply } = {}) {
   const facts = [
     job.city ? `<div class="jd-fact"><div class="k">Location</div><div class="v">${esc(job.city)}</div></div>` : "",
     job.workMode ? `<div class="jd-fact"><div class="k">Work mode</div><div class="v">${esc(job.workMode)}</div></div>` : "",
-    job.hours ? `<div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(job.hours)}</div></div>` : "",
+    job.hours ? `<div class="jd-fact"><div class="k">Commitment</div><div class="v">${esc(displayHours(job.hours))}</div></div>` : "",
     job.deadline ? `<div class="jd-fact"><div class="k">Deadline</div><div class="v" style="color:${dl <= 7 ? "var(--red)" : "inherit"}">${fmtDate(job.deadline)}</div></div>` : "",
   ].filter(Boolean).join("");
 

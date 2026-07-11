@@ -19,7 +19,7 @@
 <script type="module">
   import { bootPage, renderFooter, openAuthModal, openModal, closeModal, toast, esc, fmtDate, timeAgo, openJobDetailModal, downloadCsv, appsToCsvRows, $, $$ } from "../js/ui.js";
   import { store, onAuth, getUser } from "../js/store.js";
-  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES, jobStatusLabel, jobStatusChipClass } from "../js/config.js";
+  import { TOPICS, WORK_MODES, JOB_TYPES, COMP_TYPES, APP_STATUSES, jobStatusLabel, jobStatusChipClass, formatHoursPerWeek, displayHours } from "../js/config.js";
 
   await bootPage("dash");
   renderFooter();
@@ -376,17 +376,23 @@
             <div class="field"><label>Compensation</label>
               <select class="input" name="comp">${COMP_TYPES.map((c) => `<option>${c}</option>`).join("")}</select></div>
           </div>
-          <div class="field-row">
-            <div class="field"><label>Time commitment</label>
-              <input class="input" name="hours" placeholder="8–12 hrs/week"></div>
-            <div class="field"><label>Application deadline</label>
-              <input class="input" name="deadline" type="date" value="${inWeeks(4)}"></div>
-          </div>
+          <div class="field"><label>Application deadline</label>
+            <input class="input" name="deadline" type="date" value="${inWeeks(4)}"></div>
           <div class="field"><label>Requirements (one per line)</label>
             <textarea class="input" name="requirements" placeholder="Interest in immigration law&#10;Spanish a plus"></textarea></div>
         </div>
 
         <div id="sharedOptional">
+          <div class="field" id="hoursField">
+            <label>Hours per week <span id="hoursReq" style="font-weight:400;color:var(--faint)">(required)</span></label>
+            <div class="hours-range">
+              <input class="input" name="hoursMin" type="number" min="1" max="80" step="1" placeholder="8" inputmode="numeric">
+              <span class="hours-sep">to</span>
+              <input class="input" name="hoursMax" type="number" min="1" max="80" step="1" placeholder="12" inputmode="numeric">
+              <span class="hours-suffix">hrs/week</span>
+            </div>
+            <p class="hours-hint">Use the same number twice for a fixed weekly commitment (e.g. 10 and 10 → 10 hrs/week).</p>
+          </div>
           <div class="field-row" id="linkOptionalRow" style="display:none">
             <div class="field"><label>Location <span style="font-weight:400;color:var(--faint)">(optional)</span></label>
               <input class="input" name="linkCity" placeholder="Downtown LA / Remote (US)"></div>
@@ -422,12 +428,14 @@
         : "Students apply through Legal Underground — you review applicants on your dashboard.";
       $("#topicsReq", overlay).textContent = type === "link" ? "(optional, up to 4)" : "(pick up to 4)";
       $("#descReq", overlay).textContent = type === "link" ? "(optional)" : "(required)";
+      $("#hoursReq", overlay).textContent = type === "link" ? "(optional)" : "(required)";
       const desc = $("[name=description]", overlay);
       desc.required = type === "full";
+      const hoursMin = $("[name=hoursMin]", overlay);
+      hoursMin.required = type === "full";
       const city = $("[name=city]", overlay);
-      const hours = $("[name=hours]", overlay);
       const deadline = $("[name=deadline]", overlay);
-      city.required = hours.required = deadline.required = type === "full";
+      city.required = deadline.required = type === "full";
       $("#jobSubmitBtn", overlay).textContent = type === "link" ? "Publish link listing" : "Publish listing";
     };
     $$("#postTypeTabs button", overlay).forEach((b) =>
@@ -447,6 +455,13 @@
       const f = new FormData(e.target);
       const applyUrl = (f.get("applyUrl") || "").trim();
       const listingStatus = f.get("acceptingSoon") ? "soon" : "open";
+      const hoursMinVal = f.get("hoursMin");
+      const hoursMaxVal = f.get("hoursMax") || hoursMinVal;
+      if (hoursMinVal && Number(hoursMaxVal) < Number(hoursMinVal)) {
+        toast("Maximum hours must be at least the minimum.", true);
+        return;
+      }
+      const hours = formatHoursPerWeek(hoursMinVal, hoursMaxVal);
 
       if (postType === "link") {
         if (!applyUrl) { toast("Paste your application link.", true); return; }
@@ -460,7 +475,7 @@
           workMode: "",
           type: "Internship",
           comp: "Unpaid",
-          hours: "",
+          hours,
           deadline: linkDeadline ? new Date(linkDeadline + "T23:59:59").getTime() : null,
           topics: [...picked],
           description: f.get("description").trim() || "Apply directly on the organization's website.",
@@ -470,14 +485,14 @@
         });
       } else {
         if (!picked.size) { toast("Pick at least one practice area.", true); return; }
-        if (!f.get("city").trim() || !f.get("hours").trim() || !f.get("deadline")) {
-          toast("Fill in location, time commitment, and deadline.", true);
+        if (!f.get("city").trim() || !hours || !f.get("deadline")) {
+          toast("Fill in location, hours per week, and deadline.", true);
           return;
         }
         await store.createJob({
           title: f.get("title").trim(), org: f.get("org").trim(), city: f.get("city").trim(),
           workMode: f.get("workMode"), type: f.get("type"), comp: f.get("comp"),
-          hours: f.get("hours").trim(), deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
+          hours, deadline: new Date(f.get("deadline") + "T23:59:59").getTime(),
           topics: [...picked], description: f.get("description").trim(),
           requirements: f.get("requirements").split("\n").map((r) => r.trim()).filter(Boolean),
           ownerId: user.uid,

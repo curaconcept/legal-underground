@@ -108,7 +108,7 @@ function seedJobs() {
     {
       id: "seed_9", title: "Corporate Law Summer Clerk", org: "Meridian & Cole LLP",
       city: "Century City", workMode: "In-person", type: "Clerkship", comp: "Paid",
-      topics: ["Corporate", "Contracts", "Litigation"], hours: "Full-time (summer)", deadline: dl(10), postedAt: mk(7),
+      topics: ["Corporate", "Contracts", "Litigation"], hours: "40 hrs/week", deadline: dl(10), postedAt: mk(7),
       description: "Ten-week summer clerkship rotating through M&A, securities, and commercial litigation groups. Clerks attend closings, draft diligence memos, and present to the summer committee.",
       requirements: ["Junior or senior standing preferred", "Strong academic record"],
       status: "open", ownerId: "demo_emp",
@@ -116,7 +116,7 @@ function seedJobs() {
     {
       id: "seed_10", title: "Remote Legal Research Intern", org: "OpenBrief Research Lab",
       city: "Remote (US)", workMode: "Remote", type: "Research", comp: "School credit",
-      topics: ["Legal Research", "Appellate", "Tech Law"], hours: "Flexible, 8+ hrs/week", deadline: dl(45), postedAt: mk(10),
+      topics: ["Legal Research", "Appellate", "Tech Law"], hours: "8 hrs/week", deadline: dl(45), postedAt: mk(10),
       description: "Nonprofit legal-research lab building open tools for appellate practitioners. Interns verify citations, tag case metadata, and write plain-language summaries of new appellate decisions.",
       requirements: ["Self-directed and reliable in a remote setting", "Careful, detail-oriented reading"],
       status: "open", ownerId: "demo_emp",
